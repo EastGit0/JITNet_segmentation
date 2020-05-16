@@ -12,7 +12,7 @@ from tqdm import tqdm
 class Trainer(BaseTrainer):
     def __init__(self, model, loss, resume, config, train_loader, val_loader=None, train_logger=None, prefetch=True):
         super(Trainer, self).__init__(model, loss, resume, config, train_loader, val_loader, train_logger)
-        
+
         self.wrt_mode, self.wrt_step = 'train_', 0
         self.log_step = config['trainer'].get('log_per_iter', int(np.sqrt(self.train_loader.batch_size)))
         if config['trainer']['log_per_iter']: self.log_step = int(self.log_step / self.train_loader.batch_size) + 1
@@ -26,7 +26,7 @@ class Trainer(BaseTrainer):
         self.viz_transform = transforms.Compose([
             transforms.Resize((400, 400)),
             transforms.ToTensor()])
-        
+
         if self.device ==  torch.device('cpu'): prefetch = False
         if prefetch:
             self.train_loader = DataPrefetcher(train_loader, device=self.device)
@@ -36,7 +36,7 @@ class Trainer(BaseTrainer):
 
     def _train_epoch(self, epoch):
         self.logger.info('\n')
-            
+
         self.model.train()
         if self.config['arch']['args']['freeze_bn']:
             if isinstance(self.model, torch.nn.DataParallel): self.model.module.freeze_bn()
@@ -56,13 +56,13 @@ class Trainer(BaseTrainer):
             output = self.model(data)
             if self.config['arch']['type'][:3] == 'PSP':
                 assert output[0].size()[2:] == target.size()[1:]
-                assert output[0].size()[1] == self.num_classes 
+                assert output[0].size()[1] == self.num_classes
                 loss = self.loss(output[0], target)
                 loss += self.loss(output[1], target) * 0.4
                 output = output[0]
             else:
                 assert output.size()[2:] == target.size()[1:]
-                assert output.size()[1] == self.num_classes 
+                assert output.size()[1] == self.num_classes
                 loss = self.loss(output, target)
 
             if isinstance(self.loss, torch.nn.DataParallel):
@@ -84,16 +84,16 @@ class Trainer(BaseTrainer):
             seg_metrics = eval_metrics(output, target, self.num_classes)
             self._update_seg_metrics(*seg_metrics)
             pixAcc, mIoU, _ = self._get_seg_metrics().values()
-            
+
             # PRINT INFO
             tbar.set_description('TRAIN ({}) | Loss: {:.3f} | Acc {:.2f} mIoU {:.2f} | B {:.2f} D {:.2f} |'.format(
-                                                epoch, self.total_loss.average, 
+                                                epoch, self.total_loss.average,
                                                 pixAcc, mIoU,
                                                 self.batch_time.average, self.data_time.average))
 
         # METRICS TO TENSORBOARD
         seg_metrics = self._get_seg_metrics()
-        for k, v in list(seg_metrics.items())[:-1]: 
+        for k, v in list(seg_metrics.items())[:-1]:
             self.writer.add_scalar(f'{self.wrt_mode}/{k}', v, self.wrt_step)
         for i, opt_group in enumerate(self.optimizer.param_groups):
             self.writer.add_scalar(f'{self.wrt_mode}/Learning_rate_{i}', opt_group['lr'], self.wrt_step)
@@ -160,7 +160,7 @@ class Trainer(BaseTrainer):
             self.wrt_step = (epoch) * len(self.val_loader)
             self.writer.add_scalar(f'{self.wrt_mode}/loss', self.total_loss.average, self.wrt_step)
             seg_metrics = self._get_seg_metrics()
-            for k, v in list(seg_metrics.items())[:-1]: 
+            for k, v in list(seg_metrics.items())[:-1]:
                 self.writer.add_scalar(f'{self.wrt_mode}/{k}', v, self.wrt_step)
 
             log = {

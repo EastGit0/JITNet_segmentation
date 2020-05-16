@@ -12,7 +12,7 @@ from utils.torchsummary import summary
 from trainer import Trainer
 
 def get_instance(module, name, config, *args):
-    # GET THE CORRESPONDING CLASS / FCT 
+    # GET THE CORRESPONDING CLASS / FCT
     return getattr(module, config[name]['type'])(*args, **config[name]['args'])
 
 def main(config, resume):
@@ -57,5 +57,5 @@ if __name__=='__main__':
         config = torch.load(args.resume)['config']
     if args.device:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.device
-    
+
     main(config, args.resume)

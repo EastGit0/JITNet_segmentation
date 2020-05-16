@@ -1,4 +1,4 @@
-# Originally written by Kazuto Nakashima 
+# Originally written by Kazuto Nakashima
 # https://github.com/kazuto1011/deeplab-pytorch
 
 from base import BaseDataSet, BaseDataLoader
@@ -14,7 +14,7 @@ import cv2
 class CocoStuff10k(BaseDataSet):
     def __init__(self, warp_image = True, **kwargs):
         self.warp_image = warp_image
-        self.num_classes = 182
+        self.num_classes = 80
         self.palette = palette.COCO_palette
         super(CocoStuff10k, self).__init__(**kwargs)
 
@@ -29,9 +29,12 @@ class CocoStuff10k(BaseDataSet):
         image_path = os.path.join(self.root, 'images', image_id + '.jpg')
         label_path = os.path.join(self.root, 'annotations', image_id + '.mat')
         image = np.asarray(Image.open(image_path), dtype=np.float32)
+        if len(image.shape) == 2:
+            image = np.repeat(image[:, :, np.newaxis], 3, axis=2)
         label = sio.loadmat(label_path)['S']
         label -= 1  # unlabeled (0 -> -1)
         label[label == -1] = 255
+        label[label > 80] = 255
         if self.warp_image:
             image = cv2.resize(image, (513, 513), interpolation=cv2.INTER_LINEAR)
             label = np.asarray(Image.fromarray(label).resize((513, 513), resample=Image.NEAREST))
@@ -55,6 +58,7 @@ class CocoStuff164k(BaseDataSet):
         label_path = os.path.join(self.root, 'annotations', self.split, image_id + '.png')
         image = np.asarray(Image.open(image_path).convert('RGB'), dtype=np.float32)
         label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+        #label[label > 79] = 0
         return image, label, image_id
 
 def get_parent_class(value, dictionary):

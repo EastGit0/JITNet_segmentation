@@ -46,7 +46,7 @@ class OneCycle(_LRScheduler):
             for i in range(len(self.optimizer.param_groups)):
                 self.optimizer.param_groups[i]['momentum'] = self.momentums[0] + self.mom_diff * cos_anneling
 
-            return [base_lr - (base_lr - low_lr) * cos_anneling 
+            return [base_lr - (base_lr - low_lr) * cos_anneling
                     for base_lr, low_lr in zip(self.base_lrs, self.low_lrs)]
 
         # Going from base_lr -> base_lr / (25e4)
@@ -55,7 +55,7 @@ class OneCycle(_LRScheduler):
 
         for i in range(len(self.optimizer.param_groups)):
             self.optimizer.param_groups[i]['momentum'] = self.momentums[1] - self.mom_diff * cos_anneling
-        return [final_lr + (base_lr - final_lr) * cos_anneling 
+        return [final_lr + (base_lr - final_lr) * cos_anneling
             for base_lr, final_lr in zip(self.base_lrs, self.final_lrs)]
 
 
@@ -96,4 +96,3 @@ if __name__ == "__main__":
     plt.plot(mementums)
     plt.show()
 
-    
