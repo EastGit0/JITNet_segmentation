@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-from sklearn.utils import class_weight 
+from sklearn.utils import class_weight
 from utils.lovasz_losses import lovasz_softmax
 
 def make_one_hot(labels, classes):
@@ -24,10 +24,16 @@ def get_weights(target):
 class CrossEntropyLoss2d(nn.Module):
     def __init__(self, weight=None, ignore_index=255, reduction='mean'):
         super(CrossEntropyLoss2d, self).__init__()
-        self.CE =  nn.CrossEntropyLoss(weight=weight, ignore_index=ignore_index, reduction=reduction)
+        self.CE = nn.CrossEntropyLoss(weight=weight, ignore_index=ignore_index, reduction=reduction)
 
     def forward(self, output, target):
+        weight_mask = torch.ones_like(target)
+        object_mask = (target > 0)
+        valid_mask = target < 255
+        weight_mask[object_mask] = 10.0
         loss = self.CE(output, target)
+        loss = loss * weight_mask
+        loss = loss.masked_select(valid_mask).mean()
         return loss
 
 class DiceLoss(nn.Module):
@@ -70,7 +76,7 @@ class CE_DiceLoss(nn.Module):
         self.smooth = smooth
         self.dice = DiceLoss()
         self.cross_entropy = nn.CrossEntropyLoss(weight=weight, reduction=reduction, ignore_index=ignore_index)
-    
+
     def forward(self, output, target):
         CE_loss = self.cross_entropy(output, target)
         dice_loss = self.dice(output, target)
@@ -82,7 +88,7 @@ class LovaszSoftmax(nn.Module):
         self.smooth = classes
         self.per_image = per_image
         self.ignore_index = ignore_index
-    
+
     def forward(self, output, target):
         logits = F.softmax(output, dim=1)
         loss = lovasz_softmax(logits, target, ignore=self.ignore_index)

@@ -13,10 +13,10 @@
     "train_loader": {
         "type": "COCO",
         "args":{
-            "partition": "CocoStuff10k",
-            "data_dir": "/data3/cfan/coco10k/",
-            "batch_size": 16,
-            "base_size": 640,
+            "partition": "CocoStuff164k",
+            "data_dir": "/home/cfan/coco2017/",
+            "batch_size": 24,
+            "base_size": 480,
             "crop_size": 480,
             "augment": true,
             "shuffle": true,
@@ -24,7 +24,7 @@
             "flip": true,
             "rotate": true,
             "blur": false,
-            "split": "train",
+            "split": "train2017",
             "num_workers": 8
         }
     },
@@ -32,12 +32,12 @@
     "val_loader": {
         "type": "COCO",
         "args":{
-            "partition": "CocoStuff10k",
-            "data_dir": "/data3/cfan/coco10k",
+            "partition": "CocoStuff164k",
+            "data_dir": "/home/cfan/coco2017",
             "batch_size": 8,
             "crop_size": 480,
             "val": true,
-            "split": "test",
+            "split": "val2017",
             "num_workers": 4
         }
     },
@@ -54,6 +54,7 @@
 
     "loss": "CrossEntropyLoss2d",
     "ignore_index": 255,
+    "reduction": "none",
     "lr_scheduler": {
         "type": "Poly",
         "args": {}
@@ -62,7 +63,7 @@
     "trainer": {
         "epochs": 30,
         "save_dir": "saved/",
-        "save_period": 10,
+        "save_period": 1,
 
         "monitor": "max Mean_IoU",
         "early_stop": 10,
@@ -72,6 +73,6 @@
         "log_per_iter": 20,
 
         "val": true,
-        "val_per_epochs": 5
+        "val_per_epochs": 1
     }
 }
