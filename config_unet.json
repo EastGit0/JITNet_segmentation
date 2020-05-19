@@ -4,7 +4,7 @@
     "use_synch_bn": false,
 
     "arch": {
-        "type": "JITNet",
+        "type": "UNet",
         "args": {
             "freeze_bn": false
         }
@@ -16,8 +16,8 @@
             "partition": "CocoStuff164k",
             "data_dir": "/home/cfan/coco2017/",
             "batch_size": 24,
-            "base_size": 480,
-            "crop_size": 480,
+            "base_size": 400,
+            "crop_size": 380,
             "augment": true,
             "shuffle": true,
             "scale": true,
@@ -25,7 +25,8 @@
             "rotate": true,
             "blur": false,
             "split": "train2017",
-            "num_workers": 8
+            "num_workers": 8,
+            "things_only": false
         }
     },
 
@@ -35,20 +36,21 @@
             "partition": "CocoStuff164k",
             "data_dir": "/home/cfan/coco2017",
             "batch_size": 8,
-            "crop_size": 480,
+            "crop_size": 400,
             "val": true,
             "split": "val2017",
-            "num_workers": 4
+            "num_workers": 4,
+            "things_only": false
         }
     },
 
     "optimizer": {
-        "type": "Adam",
+        "type": "SGD",
         "differential_lr": false,
         "args":{
             "lr": 0.01,
-            "weight_decay": 4e-5,
-            "eps": 1.0
+            "weight_decay": 1e-4,
+            "momentum": 0.9
         }
     },
 
@@ -61,7 +63,7 @@
     },
 
     "trainer": {
-        "epochs": 30,
+        "epochs": 100,
         "save_dir": "saved/",
         "save_period": 1,
 

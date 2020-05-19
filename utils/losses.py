@@ -27,13 +27,7 @@ class CrossEntropyLoss2d(nn.Module):
         self.CE = nn.CrossEntropyLoss(weight=weight, ignore_index=ignore_index, reduction=reduction)
 
     def forward(self, output, target):
-        weight_mask = torch.ones_like(target)
-        object_mask = (target > 0)
-        valid_mask = target < 255
-        weight_mask[object_mask] = 10.0
         loss = self.CE(output, target)
-        loss = loss * weight_mask
-        loss = loss.masked_select(valid_mask).mean()
         return loss
 
 class DiceLoss(nn.Module):

@@ -8,7 +8,7 @@ class basic_block(nn.Module):
     def __init__(self, in_channels, out_channels, stride, upsample=1):
         super(basic_block, self).__init__()
         norm_layer = nn.BatchNorm2d
-        self.bn = norm_layer(in_channels)
+        self.bn = norm_layer(in_channels, eps=1e-3, momentum=0.001)
         self.relu = nn.ReLU(inplace=True)
         self.conv1x1 = nn.Conv2d(in_channels, out_channels,
                                  kernel_size=1, stride=stride)

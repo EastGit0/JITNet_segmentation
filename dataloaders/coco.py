@@ -41,10 +41,11 @@ class CocoStuff10k(BaseDataSet):
         return image, label, image_id
 
 class CocoStuff164k(BaseDataSet):
-    def __init__(self, label_map, **kwargs):
-        self.num_classes = 81
+    def __init__(self, label_map, things_only, **kwargs):
+        self.num_classes = 81 if things_only else 182
         self.palette = palette.COCO_palette
         self.label_map = label_map
+        self.things_only = things_only
         print(label_map)
         super(CocoStuff164k, self).__init__(**kwargs)
 
@@ -60,9 +61,10 @@ class CocoStuff164k(BaseDataSet):
         label_path = os.path.join(self.root, 'annotations', self.split, image_id + '.png')
         image = np.asarray(Image.open(image_path).convert('RGB'), dtype=np.float32)
         label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
-        label[label == 255] = 254
-        label += 1
-        label = np.take(self.label_map, label).astype(np.uint8)
+        if self.things_only:
+            label[label == 255] = 254
+            label += 1
+            label = np.take(self.label_map, label).astype(np.uint8)
         return image, label, image_id
 
 def get_parent_class(value, dictionary):
@@ -79,7 +81,8 @@ def get_parent_class(value, dictionary):
 
 class COCO(BaseDataLoader):
     def __init__(self, data_dir, batch_size, split, crop_size=None, base_size=None, scale=True, num_workers=1, partition = 'CocoStuff164k',
-                    shuffle=False, flip=False, rotate=False, blur= False, augment=False, val_split= None, return_id=False, val=False):
+                    shuffle=False, flip=False, rotate=False, blur= False, augment=False, val_split= None, return_id=False, val=False,
+                    things_only=True):
 
         self.MEAN = [0.43931922, 0.41310471, 0.37480941]
         self.STD = [0.24272706, 0.23649098, 0.23429529]
@@ -112,7 +115,8 @@ class COCO(BaseDataLoader):
             'rotate': rotate,
             'return_id': return_id,
             'val': val,
-            'label_map': label_map
+            'label_map': label_map,
+            'things_only': things_only
         }
 
         if partition == 'CocoStuff10k': self.dataset = CocoStuff10k(**kwargs)
