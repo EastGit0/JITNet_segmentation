@@ -8,3 +8,4 @@ scipy
 future
 scikit-learn
 scikit-image
+hydra-core

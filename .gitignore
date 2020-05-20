@@ -114,3 +114,4 @@ trained_models/
 .idea/
 __MACOSX/
 
+results*

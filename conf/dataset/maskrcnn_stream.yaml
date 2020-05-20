@@ -1,0 +1,5 @@
+dataset:
+  name: maskrcnn_stream
+  video_path: /home/cfan/lvsdataset/squash1/squash1000.mp4
+  label_path: /home/cfan/lvsdataset/squash1/detectron_large_mask_rcnn_1_squash1000.npy
+  num_frames: 100

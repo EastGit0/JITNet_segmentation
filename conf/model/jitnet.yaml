@@ -1,0 +1,4 @@
+model:
+  name: jitnet
+  pretrained_ckpt: '/home/cfan/pytorch_segmentation/saved/JITNet/05-18_22-57/checkpoint-epoch28.pth'
+  ignored_vars: ['dec2', 'final']

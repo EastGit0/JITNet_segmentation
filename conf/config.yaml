@@ -1,0 +1,23 @@
+defaults:
+    - dataset: maskrcnn_stream
+    - model: jitnet
+    - online_train: online_distillation
+exp:
+    output_dir: results
+    id: ??
+    gpus: [0]
+hydra:
+    run:
+        dir: ${exp.output_dir}/${exp.id}/${hydra.job.name}_${hydra.job.override_dirname}
+    job:
+        config:
+            override_dirname:
+                kv_sep: '='
+                item_sep: ','
+                exclude_keys:
+                  - exp.output_dir
+                  - exp.id
+                  - exp.gpus
+                  - dataset.video_path
+                  - dataset.label_path
+                  - model.pretrained_ckpt

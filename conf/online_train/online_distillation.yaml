@@ -1,0 +1,21 @@
+online_train:
+  optimizer:
+    name: adam
+    lr: 0.1
+    eps: 1.0
+    weight_decay: 4e-5
+  fg_weight: 10.0
+  bg_weight: 1.0
+  training_strides: [4, 8, 16, 32]
+  inference_stride: 1
+  accuracy_threshold: 0.5
+  max_updates: 8
+  fine_classes: true
+  sports_classes: false
+  max_frames: 100000
+  image_width: 1280
+  image_height: 720
+  image_mean: [0.43931922, 0.41310471, 0.37480941]
+  image_std: [0.24272706, 0.23649098, 0.23429529]
+  online_train: true
+  scale_boxes: true
