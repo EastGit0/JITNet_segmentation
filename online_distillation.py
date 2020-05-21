@@ -10,7 +10,8 @@ from torchvision import transforms
 
 from models import JITNet
 from dataloaders import MaskRCNNStream
-from dataloaders.maskrcnn_stream import batch_segmentation_masks
+from dataloaders.maskrcnn_stream import (batch_segmentation_masks,
+                                         visualize_masks)
 
 log = logging.getLogger(__name__)
 
@@ -90,6 +91,40 @@ def inference(model, images):
 
     return logits, probs, entropy
 
+
+def visualize_result_frame(vid_out, frame, probs, preds, labels, label_weights, num_classes, train_cfg):
+    # frame: [B, C, H, W]
+    # probs, preds, labels, label_weights: [B, H, W]
+    vis_preds = visualize_masks(preds, preds.shape[0],
+                                (preds.shape[1], preds.shape[2], 3),
+                                num_classes=num_classes)
+    vis_labels = visualize_masks(labels, labels.shape[0],
+                                 (labels.shape[1], labels.shape[2], 3),
+                                 num_classes=num_classes)
+
+    vis_preds = vis_preds[0]
+    vis_labels = vis_labels[0]
+    vis_frame = np.transpose(frame[0], (1, 2, 0))
+    vis_frame = (vis_frame * np.array(train_cfg.image_std) + np.array(train_cfg.image_mean)) * 255.
+    vis_frame = vis_frame.astype(np.uint8)
+
+    probs_image = np.full(vis_frame.shape, 255) * np.expand_dims(1 - probs[0], axis=2)
+    probs_image = probs_image.astype(np.uint8)
+
+    weights_image = np.full(vis_frame.shape, 255) * \
+            np.expand_dims(label_weights[0] > 0, axis=2)
+    weights_image = weights_image.astype(np.uint8)
+
+    preds_image = cv2.addWeighted(vis_frame, 0.5, vis_preds, 0.5, 0)
+    labels_image = cv2.addWeighted(vis_frame, 0.5, vis_labels, 0.5, 0)
+
+    vis_image = np.concatenate((probs_image, labels_image, preds_image), axis=1)
+    #vis_image = np.concatenate((weights_image, labels_image, preds_image), axis=1)
+
+    vis_image = vis_image[::2, ::2, :]
+
+    ret = vid_out.write(vis_image)
+
 def train(cfg):
     class_groups = get_class_groups(cfg.online_train)
     log.info(f'Number of class {len(class_groups) + 1}')
@@ -109,6 +144,15 @@ def train(cfg):
     num_teacher_samples = 0
     num_updates = 0
 
+    vid_out = None
+    if train_cfg.video_output_path:
+        vid_out = cv2.VideoWriter(train_cfg.video_output_path,
+                                  cv2.VideoWriter_fourcc(*'JPEG'),
+                                  stream.rate,
+                                  (3 * int(train_cfg.image_width / 2),
+                                   int(train_cfg.image_height / 2)))
+        assert vid_out
+
     # Online training
     for curr_frame, (frame, boxes, classes, scores, masks, num_objects, frame_id) in enumerate(stream):
         if curr_frame > train_cfg.max_frames:
@@ -116,6 +160,7 @@ def train(cfg):
 
         # Video frame and maskrcnn outputs
         frame = cv2.resize(frame, (train_cfg.image_width, train_cfg.image_height))
+        frame = frame.astype(np.float) / 255.
         frame = (frame - np.array(train_cfg.image_mean)) / np.array(train_cfg.image_std)
         frame = np.expand_dims(frame, axis=0)
         boxes = np.expand_dims(boxes, axis=0)
@@ -126,33 +171,33 @@ def train(cfg):
 
         train_stride = training_strides[curr_stride_idx]
 
+        # Convert maskrcnn outputs to dense labels
+        labels_vals, label_weights_vals = \
+            batch_segmentation_masks(1,
+                                     (train_cfg.image_height, train_cfg.image_width),
+                                     boxes, classes, masks, scores,
+                                     num_objects, True,
+                                     class_groups,
+                                     scale_boxes=train_cfg.scale_boxes)
+        labels_vals = labels_vals.astype(np.int32)
+        label_weights_vals = label_weights_vals.astype(np.int32)
+
+        # Make a batch of size 1
+        frame_list = [frame]
+        labels_list = [labels_vals]
+        label_weights_list = [label_weights_vals]
+        in_images = torch.tensor(np.concatenate(frame_list, axis=0)).to(device)
+        in_images = in_images.permute(0, 3, 1, 2).float()  # [B, C, H, W]
+        labels_vals = torch.tensor(
+            np.concatenate(labels_list, axis=0)).to(device).long()
+        label_weights_vals = torch.tensor(
+            np.concatenate(label_weights_list, axis=0)).to(device).float()
+
         if curr_frame % train_stride == 0 and train_cfg.online_train:
             num_teacher_samples += 1
             start = time.time()
 
-            # Convert maskrcnn outputs to dense labels
-            labels_vals, label_weights_vals = \
-                batch_segmentation_masks(1,
-                                         (train_cfg.image_height, train_cfg.image_width),
-                                         boxes, classes, masks, scores,
-                                         num_objects, True,
-                                         class_groups,
-                                         scale_boxes=train_cfg.scale_boxes)
-            labels_vals = labels_vals.astype(np.int32)
-            label_weights_vals = label_weights_vals.astype(np.int32)
-
-            # Make a batch of size 1
-            frame_list = [frame]
-            labels_list = [labels_vals]
-            label_weights_list = [label_weights_vals]
-            in_images = torch.tensor(np.concatenate(frame_list, axis=0)).to(device)
-            in_images = in_images.permute(0, 3, 1, 2).float()  # [B, C, H, W]
-            labels_vals = torch.tensor(
-                np.concatenate(labels_list, axis=0)).to(device).long()
-            label_weights_vals = torch.tensor(
-                np.concatenate(label_weights_list, axis=0)).to(device).float()
-
-            # Online optimization
+             # Online optimization
             curr_updates = 0
             while curr_updates < train_cfg.max_updates:
                 optimizer.zero_grad()
@@ -171,14 +216,15 @@ def train(cfg):
 
                 # Training stats
                 with torch.no_grad():
+                    probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
                     labels_onehot = F.one_hot(
                         labels_vals, probs.shape[1]).permute(0, 3, 1, 2)  # [B, C, H, W]
-                    fp = (probs * (1. - labels_onehot)).sum([0, 2, 3])  # [C]
-                    tp = (probs * labels_onehot).sum([0, 2, 3])  # [C]
-                    fn = ((1. - probs) * labels_onehot).sum([0, 2, 3])  # [C]
+                    preds_onehot = F.one_hot(preds, probs.shape[1]).permute(0, 3, 1, 2)  # [B, C, H, W]
+                    fp = (preds_onehot * (1. - labels_onehot)).sum([0, 2, 3])  # [C]
+                    tp = (preds_onehot * labels_onehot).sum([0, 2, 3])  # [C]
+                    fn = ((1. - preds_onehot) * labels_onehot).sum([0, 2, 3])  # [C]
                     eps = 100.
                     cls_scores = (tp + eps) / (tp + fp + fn + eps)  # [C]
-                    probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
 
                 num_updates = num_updates + 1
                 curr_updates = curr_updates + 1
@@ -203,11 +249,25 @@ def train(cfg):
             start = time.time()
             with torch.no_grad():
                 logits, probs, entropy = inference(model, in_images)
+                probs_max, preds = torch.max(probs, dim=1)
             end = time.time()
             training_str = ""
             stride_str = ""
 
+        if vid_out:
+            visualize_result_frame(vid_out,
+                                   in_images.cpu().numpy(),
+                                   probs_max.cpu().numpy(),
+                                   preds.cpu().numpy(),
+                                   labels_vals.cpu().numpy(),
+                                   label_weights_vals.cpu().numpy(),
+                                   len(class_groups),
+                                   train_cfg)
+
         log.info(f'frame: {curr_frame:05d} time: {end - start:.5f}s {training_str} {stride_str}')
+
+    if vid_out:
+        vid_out.release()
 
 
 @hydra.main(config_path='conf/config.yaml')

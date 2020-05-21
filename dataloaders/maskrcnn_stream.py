@@ -4,6 +4,36 @@ import numpy as np
 import time
 from itertools import chain
 
+def visualize_masks(labels, batch_size, image_shape,
+                    num_classes = 5):
+
+    masks = []
+    for label in range(1, num_classes + 1):
+        masks.append(labels == label)
+
+    labels_vis = np.zeros((batch_size,
+                           image_shape[0],
+                           image_shape[1],
+                           image_shape[2]), np.uint8)
+
+    cmap = [[166, 206, 227],
+            [178, 223, 138],
+            [31,  120, 180],
+            [51,  160,  44],
+            [251, 154, 153],
+            [227,  26,  28],
+            [253, 191, 111],
+            [255, 127,   0],
+            [202, 178, 214],
+            [106,  61, 154],
+            [255, 255, 153],
+            [177, 89,   40],
+            [125, 125, 125]] # added a gray one. might not be perfect
+    for i in range(num_classes):
+        labels_vis[masks[i]] = cmap[i]
+
+    return labels_vis
+
 def mask_rcnn_unmold_cls_mask(mask, bbox, image_shape, idx, full_masks,
                               box_masks, cls, compute_box_mask=False,
                               dialate=True, threshold = 0.5):

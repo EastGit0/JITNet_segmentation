@@ -6,9 +6,9 @@ online_train:
     weight_decay: 4e-5
   fg_weight: 10.0
   bg_weight: 1.0
-  training_strides: [4, 8, 16, 32]
+  training_strides: [8, 16, 32, 64]
   inference_stride: 1
-  accuracy_threshold: 0.5
+  accuracy_threshold: 0.8
   max_updates: 8
   fine_classes: true
   sports_classes: false
@@ -19,3 +19,4 @@ online_train:
   image_std: [0.24272706, 0.23649098, 0.23429529]
   online_train: true
   scale_boxes: true
+  video_output_path: '/home/cfan/pytorch_segmentation/video.avi'
