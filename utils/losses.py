@@ -24,6 +24,9 @@ def get_weights(target):
 class CrossEntropyLoss2d(nn.Module):
     def __init__(self, weight=None, ignore_index=255, reduction='mean'):
         super(CrossEntropyLoss2d, self).__init__()
+        weight = [10.] * 81
+        weight[0] = 1.
+        weight = torch.tensor(weight)
         self.CE = nn.CrossEntropyLoss(weight=weight, ignore_index=ignore_index, reduction=reduction)
 
     def forward(self, output, target):

@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from itertools import chain
+from utils.metrics import eval_metrics
 
 class basic_block(nn.Module):
     def __init__(self, in_channels, out_channels, stride, upsample=1):
@@ -39,16 +40,26 @@ class basic_block(nn.Module):
 class JITNet(BaseModel):
     def __init__(self,
                  num_classes,
-                 encoder_channels=[16, 64, 128, 128, 256],
+                 encoder_channels=[8, 32, 64, 64, 128],
                  encoder_strides=[2, 2, 2, 2, 2],
-                 decoder_channels=[256, 128, 64, 64, 16],
+                 decoder_channels=[128, 64, 32, 32, 32],
                  decoder_strides=[1, 1, 1, 1, 1],
                  decoder_upsamples=[2, 2, 4, 1, 2],
+                 bn_momentum=0.001,
                  **_):
         super(JITNet, self).__init__()
 
-        self.enc1 = nn.Conv2d(3, encoder_channels[0], 3, 2, 1)
-        self.enc2 = nn.Conv2d(encoder_channels[0], encoder_channels[1], 3, 2, 1)
+        self.enc1 = nn.Sequential(
+            nn.Conv2d(3, encoder_channels[0], 3, 2, 1),
+            nn.BatchNorm2d(encoder_channels[0], momentum=bn_momentum),
+            nn.ReLU(inplace=True)
+        )
+        self.enc2 = nn.Sequential(
+            nn.Conv2d(encoder_channels[0], encoder_channels[1], 3, 2, 1),
+            nn.BatchNorm2d(encoder_channels[1], momentum=bn_momentum),
+            nn.ReLU(inplace=True)
+        )
+
         self.enc_blocks = []
         for i in range(2, len(encoder_channels)):
             self.enc_blocks.append(basic_block(encoder_channels[i - 1],
@@ -65,19 +76,26 @@ class JITNet(BaseModel):
             prev_c = decoder_channels[i] + encoder_channels[-i - 2]
         self.dec_blocks = nn.ModuleList(self.dec_blocks)
 
-        self.dec1 = nn.Conv2d(decoder_channels[-3], decoder_channels[-2], 3, 1, 1)
-        self.dec2 = nn.Conv2d(decoder_channels[-2], decoder_channels[-1], 3, 1, 1)
+        self.dec1 = nn.Sequential(
+            nn.Conv2d(decoder_channels[-3], decoder_channels[-2], 3, 1, 1),
+            nn.BatchNorm2d(decoder_channels[-2], momentum=bn_momentum),
+            nn.ReLU(inplace=True)
+        )
+        self.dec2 = nn.Sequential(
+            nn.Conv2d(decoder_channels[-2], decoder_channels[-1], 3, 1, 1),
+            nn.BatchNorm2d(decoder_channels[-1], momentum=bn_momentum),
+            nn.ReLU(inplace=True)
+        )
+
         self.dec_upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         self.final = nn.Conv2d(decoder_channels[-1], num_classes, 1, 1)
 
         self._initialize_weights()
         #if freeze_bn: self.freeze_bn(
 
-    def forward(self, x):
+    def forward(self, x, labels=None, return_output=False):
         x = self.enc1(x)
-        x = F.relu(x, inplace=True)
         x = self.enc2(x)
-        x = F.relu(x, inplace=True)
         down_x = []
         for b in self.enc_blocks:
             x = b(x)
@@ -88,13 +106,21 @@ class JITNet(BaseModel):
                 dx = down_x[-i - 2]
                 x = torch.cat([dx, x[:, :, :dx.shape[2], :dx.shape[3]]], dim=1)
         x = self.dec1(x)
-        x = F.relu(x, inplace=True)
         x = self.dec2(x)
-        x = F.relu(x, inplace=True)
         x = self.dec_upsample(x)
         x = self.final(x)
 
-        return x
+        output = x
+        if not hasattr(self, 'loss'):
+            return output
+
+        loss = self.loss(output, labels)
+        seg_metrics = eval_metrics(output, labels, output.shape[1])
+
+        if not return_output:
+            return loss, seg_metrics
+        else:
+            return loss, output, seg_metrics
 
     def _initialize_weights(self):
         for module in self.modules():
@@ -119,7 +145,7 @@ class JITNet(BaseModel):
 
 
 if __name__ == "__main__":
-    model = JITNet(8)
+    model = JITNet(81)
     print(model)
 
     x = torch.rand(size=[8, 3, 480, 480])

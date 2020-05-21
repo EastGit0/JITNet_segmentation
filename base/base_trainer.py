@@ -30,13 +30,13 @@ class BaseTrainer:
 
         # SETTING THE DEVICE
         self.device, availble_gpus = self._get_available_devices(self.config['n_gpu'])
+        self.model.loss = loss
         if config["use_synch_bn"]:
             self.model = convert_model(self.model)
             self.model = DataParallelWithCallback(self.model, device_ids=availble_gpus)
         else:
             self.model = torch.nn.DataParallel(self.model, device_ids=availble_gpus)
         self.model.cuda()
-        self.loss.cuda()
 
         # CONFIGS
         cfg_trainer = self.config['trainer']
@@ -167,7 +167,7 @@ class BaseTrainer:
 
         if checkpoint['config']['arch'] != self.config['arch']:
             self.logger.warning({'Warning! Current model is not the same as the one in the checkpoint'})
-        self.model.load_state_dict(checkpoint['state_dict'])
+        self.model.load_state_dict(checkpoint['state_dict'], strict=False)
 
         if checkpoint['config']['optimizer']['type'] != self.config['optimizer']['type']:
             self.logger.warning({'Warning! Current optimizer is not the same as the one in the checkpoint'})
@@ -175,8 +175,8 @@ class BaseTrainer:
         # if self.lr_scheduler:
         #     self.lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
 
-        self.train_logger = checkpoint['logger']
-        self.logger.info(f'Checkpoint <{resume_path}> (epoch {self.start_epoch}) was loaded')
+        #self.train_logger = checkpoint['logger']
+        #self.logger.info(f'Checkpoint <{resume_path}> (epoch {self.start_epoch}) was loaded')
 
     def _train_epoch(self, epoch):
         raise NotImplementedError

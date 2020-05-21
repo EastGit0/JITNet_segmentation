@@ -16,8 +16,8 @@
             "partition": "CocoStuff164k",
             "data_dir": "/home/cfan/coco2017/",
             "batch_size": 24,
-            "base_size": 480,
-            "crop_size": 480,
+            "base_size": 768,
+            "crop_size": 768,
             "augment": true,
             "shuffle": true,
             "scale": true,
@@ -25,7 +25,7 @@
             "rotate": true,
             "blur": false,
             "split": "train2017",
-            "num_workers": 8
+            "num_workers": 16
         }
     },
 
@@ -35,7 +35,7 @@
             "partition": "CocoStuff164k",
             "data_dir": "/home/cfan/coco2017",
             "batch_size": 8,
-            "crop_size": 480,
+            "crop_size": 768,
             "val": true,
             "split": "val2017",
             "num_workers": 4
@@ -46,7 +46,7 @@
         "type": "Adam",
         "differential_lr": false,
         "args":{
-            "lr": 0.01,
+            "lr": 0.1,
             "weight_decay": 4e-5,
             "eps": 1.0
         }

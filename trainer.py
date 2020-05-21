@@ -52,20 +52,23 @@ class Trainer(BaseTrainer):
 
             # LOSS & OPTIMIZE
             self.optimizer.zero_grad()
-            output = self.model(data)
-            if self.config['arch']['type'][:3] == 'PSP':
-                assert output[0].size()[2:] == target.size()[1:]
-                assert output[0].size()[1] == self.num_classes
-                loss = self.loss(output[0], target)
-                loss += self.loss(output[1], target) * 0.4
-                output = output[0]
-            else:
-                assert output.size()[2:] == target.size()[1:]
-                assert output.size()[1] == self.num_classes
-                loss = self.loss(output, target)
+            loss, seg_metrics = self.model(data, target)
+            #if self.config['arch']['type'][:3] == 'PSP':
+            #    assert output[0].size()[2:] == target.size()[1:]
+            #    assert output[0].size()[1] == self.num_classes
+            #    loss = self.loss(output[0], target)
+            #    loss += self.loss(output[1], target) * 0.4
+            #    output = output[0]
+            #else:
+            #    assert output.size()[2:] == target.size()[1:]
+            #    assert output.size()[1] == self.num_classes
+            #    loss = self.loss(output, target)
 
-            if isinstance(self.loss, torch.nn.DataParallel):
+            if isinstance(self.model, torch.nn.DataParallel):
+                num_gpus = loss.shape[0]
                 loss = loss.mean()
+                seg_metrics = {k: v.view(num_gpus, -1).float().mean(0).cpu().numpy()
+                               for k, v in seg_metrics.items()}
             loss.backward()
             self.optimizer.step()
             self.total_loss.update(loss.item())
@@ -80,8 +83,8 @@ class Trainer(BaseTrainer):
                 self.writer.add_scalar(f'{self.wrt_mode}/loss', loss.item(), self.wrt_step)
 
             # FOR EVAL
-            seg_metrics = eval_metrics(output, target, self.num_classes)
-            self._update_seg_metrics(*seg_metrics)
+            #seg_metrics = eval_metrics(output, target, self.num_classes)
+            self._update_seg_metrics(**seg_metrics)
             pixAcc, mIoU, _ = self._get_seg_metrics().values()
 
             # PRINT INFO
@@ -121,14 +124,15 @@ class Trainer(BaseTrainer):
             for batch_idx, (data, target) in enumerate(tbar):
                 #data, target = data.to(self.device), target.to(self.device)
                 # LOSS
-                output = self.model(data)
-                loss = self.loss(output, target)
-                if isinstance(self.loss, torch.nn.DataParallel):
+                loss, output, seg_metrics = self.model(data, target, return_output=True)
+                if isinstance(self.model, torch.nn.DataParallel):
+                    num_gpus = loss.shape[0]
                     loss = loss.mean()
+                    seg_metrics = {k: v.view(num_gpus, -1).float().mean(0).cpu().numpy()
+                                   for k, v in seg_metrics.items()}
                 self.total_loss.update(loss.item())
 
-                seg_metrics = eval_metrics(output, target, self.num_classes)
-                self._update_seg_metrics(*seg_metrics)
+                self._update_seg_metrics(**seg_metrics)
 
                 # LIST OF IMAGE TO VIZ (15 images)
                 if len(val_visual) < 15:
@@ -187,7 +191,7 @@ class Trainer(BaseTrainer):
         IoU = 1.0 * self.total_inter / (np.spacing(1) + self.total_union)
         mIoU = IoU.mean()
         return {
-            "Pixel_Accuracy": np.round(pixAcc, 3),
+            "Pixel_Accuracy": np.round(pixAcc, 3)[0],
             "Mean_IoU": np.round(mIoU, 3),
             "Class_IoU": dict(zip(range(self.num_classes), np.round(IoU, 3)))
         }
