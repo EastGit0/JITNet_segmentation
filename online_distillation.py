@@ -1,3 +1,4 @@
+import os
 import time
 
 import cv2
@@ -9,44 +10,13 @@ import torch.nn.functional as F
 from torchvision import transforms
 
 from models import JITNet
-from dataloaders import MaskRCNNStream
 from dataloaders.maskrcnn_stream import (batch_segmentation_masks,
-                                         visualize_masks)
+                                         visualize_masks,
+                                         MaskRCNNSequenceStream)
+import dataloaders.lvs_dataset as lvs_dataset
+
 
 log = logging.getLogger(__name__)
-
-def get_class_groups(train_cfg):
-    people_cls = [1]
-    ball_cls = [33]
-    twowheeler_cls = [2, 4]
-    vehicle_cls = [3, 6, 7, 8]
-
-    #(40, 'bottle')
-    #(41, 'wine glass')
-    #(42, 'cup')
-    #(43, 'fork')
-    #(44, 'knife')
-    #(45, 'spoon')
-    #(46, 'bowl')
-
-    utensils_cls = [40, 41, 42, 43, 44, 45, 46]
-
-    #(14, 'bench')
-    #(57, 'chair')
-    #(58, 'couch')
-    #(61, 'dining table')
-    furniture_cls = [14, 57, 58, 61]
-
-    if train_cfg.fine_classes:
-        cls = [1, 2, 4, 10, 40, 42, 46, 57, 61]
-        class_groups = [[x] for x in cls]
-        class_groups.append([3, 6, 8])
-    elif train_cfg.sports_classes:
-        class_groups = [people_cls, ball_cls]
-    else:
-        class_groups = [people_cls, twowheeler_cls, vehicle_cls, utensils_cls, furniture_cls]
-
-    return class_groups
 
 def configure_optimizer(optimizer_cfg, model):
     if optimizer_cfg.name == 'adam':
@@ -78,9 +48,32 @@ def load_model(model_cfg, num_classes):
     return model
 
 def load_video_stream(dataset_cfg):
-    stream = MaskRCNNStream(dataset_cfg.video_path,
-                            dataset_cfg.label_path)
-    return stream
+    sequence_to_video_list = lvs_dataset.get_sequence_to_video_list(
+        dataset_cfg.data_dir,
+        dataset_cfg.data_dir,
+        lvs_dataset.video_sequences_stable
+    )
+    assert dataset_cfg.sequence in sequence_to_video_list
+
+    video_files = []
+    detecttion_files = []
+    for s in sequence_to_video_list[dataset_cfg.sequence]:
+        video_files.append(os.path.join(
+            dataset_cfg.data_dir, dataset_cfg.sequence, s[0]))
+        detecttion_files.append(os.path.join(
+            dataset_cfg.data_dir, dataset_cfg.sequence, s[1]))
+
+    class_groups = lvs_dataset.sequence_to_class_groups_stable[dataset_cfg.sequence]
+    log.info(video_files)
+    log.info(detecttion_files)
+    log.info(class_groups)
+
+    class_groups = [ [lvs_dataset.detectron_classes.index(c) for c in g] \
+                     for g in class_groups]
+
+    stream = MaskRCNNSequenceStream(video_files, detecttion_files)
+
+    return stream, class_groups
 
 def inference(model, images):
     logits = model(images)  # [B, C, H, W]
@@ -125,15 +118,66 @@ def visualize_result_frame(vid_out, frame, probs, preds, labels, label_weights, 
 
     ret = vid_out.write(vis_image)
 
-def train(cfg):
-    class_groups = get_class_groups(cfg.online_train)
-    log.info(f'Number of class {len(class_groups) + 1}')
 
+def update_stats(labels, pred_vals, class_tp, class_fp, class_fn,
+                 class_total, class_correct, weight_mask,
+                 entropy_vals, frame_id, ran_teacher,
+                 num_updates, frame_stats):
+    eps = 1e-06
+    num_classes = len(class_total)
+    curr_tp = np.zeros(num_classes, np.float32)
+    curr_fp = np.zeros(num_classes, np.float32)
+    curr_fn = np.zeros(num_classes, np.float32)
+    curr_iou = np.zeros(num_classes, np.float32)
+    curr_correct = np.zeros(num_classes, np.float32)
+    curr_total = np.zeros(num_classes, np.float32)
+    correct_mask = (pred_vals == labels)
+
+    for g in range(num_classes):
+        cls_mask = np.logical_and((labels == g), weight_mask)
+        cls_tp_mask = np.logical_and(cls_mask, correct_mask)
+        cls_tp = np.sum(cls_tp_mask)
+        curr_tp[g] = cls_tp
+        class_tp[g] = class_tp[g] + cls_tp
+
+        cls_total = np.sum(cls_mask)
+        curr_total[g] = cls_total
+        curr_correct[g] = cls_tp
+        class_total[g] = class_total[g] + cls_total
+        class_correct[g] = class_correct[g] + cls_tp
+
+        pred_mask = np.logical_and((pred_vals == g), weight_mask)
+        cls_fp_mask = np.logical_and(np.logical_not(cls_mask), pred_mask)
+        cls_fn_mask = np.logical_and(cls_mask, np.logical_not(pred_mask))
+
+        cls_fp = np.sum(cls_fp_mask)
+        cls_fn = np.sum(cls_fn_mask)
+        curr_fp[g] = cls_fp
+        curr_fn[g] = cls_fn
+        class_fp[g] = class_fp[g] + cls_fp
+        class_fn[g] = class_fn[g] + cls_fn
+
+        cls_iou = (cls_tp + eps) / (cls_tp + cls_fp + cls_fn + eps)
+        curr_iou[g] = cls_iou
+
+    frame_stats[frame_id] = { 'tp': curr_tp,
+                              'fp': curr_fp,
+                              'fn': curr_fn,
+                              'iou': curr_iou,
+                              'correct': curr_correct,
+                              'total': curr_total,
+                              'average_entropy': entropy_vals,
+                              'ran_teacher': ran_teacher,
+                              'num_updates': num_updates }
+
+def train(cfg):
     # Init model, optimizer, loss, video stream
+    stream, class_groups = load_video_stream(cfg.dataset)
+    num_classes = len(class_groups) + 1
+    log.info(f'Number of class {num_classes}')
     device = torch.device('cuda')
-    model = load_model(cfg.model, len(class_groups) + 1)
+    model = load_model(cfg.model, num_classes)
     model.to(device)
-    stream = load_video_stream(cfg.dataset)
     optimizer = configure_optimizer(cfg.online_train.optimizer, model)
     criterion = torch.nn.CrossEntropyLoss(reduction='none')
 
@@ -143,6 +187,13 @@ def train(cfg):
     curr_stride_idx = 0
     num_teacher_samples = 0
     num_updates = 0
+    per_frame_stats = {}
+    class_correct = np.zeros(num_classes, np.float32)
+    class_total = np.zeros(num_classes, np.float32)
+    class_tp = np.zeros(num_classes, np.float32)
+    class_fp = np.zeros(num_classes, np.float32)
+    class_fn = np.zeros(num_classes, np.float32)
+    class_iou = np.zeros(num_classes, np.float32)
 
     vid_out = None
     if train_cfg.video_output_path:
@@ -193,12 +244,12 @@ def train(cfg):
         label_weights_vals = torch.tensor(
             np.concatenate(label_weights_list, axis=0)).to(device).float()
 
+        curr_updates = 0
         if curr_frame % train_stride == 0 and train_cfg.online_train:
             num_teacher_samples += 1
             start = time.time()
 
              # Online optimization
-            curr_updates = 0
             while curr_updates < train_cfg.max_updates:
                 optimizer.zero_grad()
 
@@ -254,6 +305,21 @@ def train(cfg):
             training_str = ""
             stride_str = ""
 
+        if train_cfg.stats_path:
+            update_stats(labels_vals[0].cpu().numpy(),
+                         preds[0].cpu().numpy(),
+                         class_tp,
+                         class_fp,
+                         class_fn,
+                         class_total,
+                         class_correct,
+                         np.ones(labels_vals.shape, dtype=np.bool),
+                         entropy.cpu().numpy(),
+                         curr_frame,
+                         len(training_str) > 0,
+                         curr_updates,
+                         per_frame_stats)
+
         if vid_out:
             visualize_result_frame(vid_out,
                                    in_images.cpu().numpy(),
@@ -265,6 +331,9 @@ def train(cfg):
                                    train_cfg)
 
         log.info(f'frame: {curr_frame:05d} time: {end - start:.5f}s {training_str} {stride_str}')
+
+    if train_cfg.stats_path:
+        np.save(train_cfg.stats_path, [per_frame_stats])
 
     if vid_out:
         vid_out.release()

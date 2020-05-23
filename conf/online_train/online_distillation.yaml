@@ -19,4 +19,5 @@ online_train:
   image_std: [0.24272706, 0.23649098, 0.23429529]
   online_train: true
   scale_boxes: true
-  video_output_path: '/home/cfan/pytorch_segmentation/video.avi'
+  video_output_path: 'video.avi'
+  stats_path: 'stats'

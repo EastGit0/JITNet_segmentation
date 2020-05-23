@@ -1,5 +1,0 @@
-dataset:
-  name: maskrcnn_stream
-  video_path: /home/cfan/lvsdataset/samui_walking_street1/samui_walking_street1001.mp4
-  label_path: /home/cfan/lvsdataset/samui_walking_street1/detectron_large_mask_rcnn_1_samui_walking_street1001.npy
-  num_frames: 100

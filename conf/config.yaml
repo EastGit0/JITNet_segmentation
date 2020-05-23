@@ -1,5 +1,5 @@
 defaults:
-    - dataset: maskrcnn_stream
+    - dataset: lvs
     - model: jitnet
     - online_train: online_distillation
 exp:

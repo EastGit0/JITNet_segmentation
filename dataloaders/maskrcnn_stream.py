@@ -252,7 +252,6 @@ class MaskRCNNSequenceStream:
         self.stream_idx = 0
         self.num_streams = len(video_paths)
         self.rate = 0
-        print(video_paths)
         for d in range(len(video_paths)):
             input_stream = MaskRCNNStream(video_paths[d], detections_paths[d],
                                           start_frame=start_frame, stride=stride,
