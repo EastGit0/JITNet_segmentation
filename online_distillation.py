@@ -10,11 +10,13 @@ import torch
 import torch.nn.functional as F
 from torchvision import transforms
 
+from analytics import full_segment_iou
 from models import JITNet
 from dataloaders.maskrcnn_stream import (batch_segmentation_masks,
                                          visualize_masks,
                                          MaskRCNNSequenceStream)
 import dataloaders.lvs_dataset as lvs_dataset
+
 
 
 log = logging.getLogger(__name__)
@@ -134,32 +136,13 @@ def visualize_result_frame(vid_out, frame, probs, preds, labels, label_weights, 
     ret = vid_out.write(vis_image)
 
 
-def update_stats(tp, fp, fn, class_tp, class_fp, class_fn,
+def update_stats(tp, fp, fn, iou,
                  entropy_vals, frame_id, ran_teacher,
                  num_updates, frame_stats):
-    eps = 1e-06
-    num_classes = tp.shape[0]
-    curr_tp = np.zeros(num_classes, np.float32)
-    curr_fp = np.zeros(num_classes, np.float32)
-    curr_fn = np.zeros(num_classes, np.float32)
-    curr_iou = np.zeros(num_classes, np.float32)
-
-    for g in range(num_classes):
-        class_tp[g] = class_tp[g] + tp[g]
-        curr_tp[g] = tp[g]
-
-        class_fp[g] = class_fp[g] + fp[g]
-        curr_fp[g] = fp[g]
-        class_fn[g] = class_fn[g] + fn[g]
-        curr_fn[g] = fn[g]
-
-        cls_iou = (tp[g] + eps) / (tp[g] + fp[g] + fn[g] + eps)
-        curr_iou[g] = cls_iou
-
-    frame_stats[frame_id] = { 'tp': curr_tp,
-                              'fp': curr_fp,
-                              'fn': curr_fn,
-                              'iou': curr_iou,
+    frame_stats[frame_id] = { 'tp': tp,
+                              'fp': fp,
+                              'fn': fn,
+                              'iou': iou,
                               'average_entropy': entropy_vals,
                               'ran_teacher': ran_teacher,
                               'num_updates': num_updates }
@@ -186,11 +169,6 @@ def train(cfg):
     num_teacher_samples = 0
     num_updates = 0
     per_frame_stats = {}
-    class_correct = np.zeros(num_classes, np.float32)
-    class_total = np.zeros(num_classes, np.float32)
-    class_tp = np.zeros(num_classes, np.float32)
-    class_fp = np.zeros(num_classes, np.float32)
-    class_fn = np.zeros(num_classes, np.float32)
     class_iou = np.zeros(num_classes, np.float32)
 
     vid_out = None
@@ -316,10 +294,10 @@ def train(cfg):
             stride_str = ""
 
         if train_cfg.stats_path:
-            update_stats(tp.cpu().numpy(), fp.cpu().numpy(), fn.cpu().numpy(),
-                         class_tp,
-                         class_fp,
-                         class_fn,
+            update_stats(tp.cpu().numpy(),
+                         fp.cpu().numpy(),
+                         fn.cpu().numpy(),
+                         cls_scores.cpu().numpy(),
                          entropy.cpu().numpy(),
                          curr_frame,
                          len(training_str) > 0,
@@ -340,6 +318,15 @@ def train(cfg):
 
     if train_cfg.stats_path:
         np.save(train_cfg.stats_path, [per_frame_stats])
+        class_names = lvs_dataset.sequence_to_class_groups_stable[cfg.dataset.sequence]
+        class_names = ['background'] + ['_'.join(g) for g in class_names]
+        full_segment_iou.make_table(class_names,
+                                    [[f'{train_cfg.stats_path}.npy', 'jitnet']],
+                                    train_cfg.max_frames,
+                                    'result.csv',
+                                    [],
+                                    0
+        )
 
     if vid_out:
         vid_out.release()
