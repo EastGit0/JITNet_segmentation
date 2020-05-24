@@ -6,10 +6,14 @@ from itertools import chain
 from utils.metrics import eval_metrics
 
 class basic_block(nn.Module):
-    def __init__(self, in_channels, out_channels, stride, upsample=1):
+    def __init__(self, in_channels, out_channels, stride, upsample=1,
+                 bn_eps=1e-5,
+                 bn_momentum=0.003,
+                 bn_track_trunning_stats=True):
         super(basic_block, self).__init__()
         norm_layer = nn.BatchNorm2d
-        self.bn = norm_layer(in_channels, eps=1e-3, momentum=0.001)
+        self.bn = norm_layer(in_channels, eps=bn_eps, momentum=bn_momentum,
+                             track_running_stats=bn_track_trunning_stats)
         self.relu = nn.ReLU(inplace=True)
         self.conv1x1 = nn.Conv2d(in_channels, out_channels,
                                  kernel_size=1, stride=stride)
@@ -45,18 +49,22 @@ class JITNet(BaseModel):
                  decoder_channels=[128, 64, 32, 32, 32],
                  decoder_strides=[1, 1, 1, 1, 1],
                  decoder_upsamples=[2, 2, 4, 1, 2],
-                 bn_momentum=0.001,
+                 bn_eps=1e-5,
+                 bn_momentum=0.003,
+                 bn_track_trunning_stats=True,
                  **_):
         super(JITNet, self).__init__()
 
         self.enc1 = nn.Sequential(
             nn.Conv2d(3, encoder_channels[0], 3, 2, 1),
-            nn.BatchNorm2d(encoder_channels[0], momentum=bn_momentum),
+            nn.BatchNorm2d(encoder_channels[0], eps=bn_eps, momentum=bn_momentum,
+                           track_running_stats=bn_track_trunning_stats),
             nn.ReLU(inplace=True)
         )
         self.enc2 = nn.Sequential(
             nn.Conv2d(encoder_channels[0], encoder_channels[1], 3, 2, 1),
-            nn.BatchNorm2d(encoder_channels[1], momentum=bn_momentum),
+            nn.BatchNorm2d(encoder_channels[1], eps=bn_eps, momentum=bn_momentum,
+                           track_running_stats=bn_track_trunning_stats),
             nn.ReLU(inplace=True)
         )
 
@@ -64,7 +72,9 @@ class JITNet(BaseModel):
         for i in range(2, len(encoder_channels)):
             self.enc_blocks.append(basic_block(encoder_channels[i - 1],
                                                encoder_channels[i],
-                                               encoder_strides[i]))
+                                               encoder_strides[i],
+                                               bn_eps=bn_eps,
+                                               bn_momentum=bn_momentum))
         self.enc_blocks = nn.ModuleList(self.enc_blocks)
         self.dec_blocks = []
         prev_c = encoder_channels[-1]
@@ -72,18 +82,22 @@ class JITNet(BaseModel):
             self.dec_blocks.append(basic_block(prev_c,
                                                decoder_channels[i],
                                                decoder_strides[i],
-                                               decoder_upsamples[i]))
+                                               decoder_upsamples[i],
+                                               bn_eps=bn_eps,
+                                               bn_momentum=bn_momentum))
             prev_c = decoder_channels[i] + encoder_channels[-i - 2]
         self.dec_blocks = nn.ModuleList(self.dec_blocks)
 
         self.dec1 = nn.Sequential(
             nn.Conv2d(decoder_channels[-3], decoder_channels[-2], 3, 1, 1),
-            nn.BatchNorm2d(decoder_channels[-2], momentum=bn_momentum),
+            nn.BatchNorm2d(decoder_channels[-2], eps=bn_eps, momentum=bn_momentum,
+                           track_running_stats=bn_track_trunning_stats),
             nn.ReLU(inplace=True)
         )
         self.dec2 = nn.Sequential(
             nn.Conv2d(decoder_channels[-2], decoder_channels[-1], 3, 1, 1),
-            nn.BatchNorm2d(decoder_channels[-1], momentum=bn_momentum),
+            nn.BatchNorm2d(decoder_channels[-1], eps=bn_eps, momentum=bn_momentum,
+                           track_running_stats=bn_track_trunning_stats),
             nn.ReLU(inplace=True)
         )
 

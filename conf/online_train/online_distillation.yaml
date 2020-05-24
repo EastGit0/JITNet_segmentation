@@ -1,9 +1,10 @@
 online_train:
   optimizer:
-    name: adam
-    lr: 0.1
-    eps: 1.0
+    name: sgd
+    lr: 0.01
     weight_decay: 4e-5
+    momentum: 0.9
+    nesterov: True
   fg_weight: 10.0
   bg_weight: 1.0
   training_strides: [8, 16, 32, 64]

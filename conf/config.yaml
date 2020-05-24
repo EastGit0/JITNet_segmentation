@@ -6,6 +6,7 @@ exp:
     output_dir: results
     id: ??
     gpus: [0]
+    seed: 0
 hydra:
     run:
         dir: ${exp.output_dir}/${exp.id}/${hydra.job.name}_${hydra.job.override_dirname}

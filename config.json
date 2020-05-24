@@ -47,7 +47,7 @@
         "differential_lr": false,
         "args":{
             "lr": 0.1,
-            "weight_decay": 4e-5,
+            "weight_decay": 1e-4,
             "eps": 1.0
         }
     },
@@ -55,8 +55,10 @@
     "loss": "CrossEntropyLoss2d",
     "ignore_index": 255,
     "lr_scheduler": {
-        "type": "Poly",
+        "type": "MultiStepLR",
         "args": {
+            "milestones": [10, 20],
+            "gamma": 0.1
         }
     },
 

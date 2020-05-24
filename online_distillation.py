@@ -1,5 +1,6 @@
 import os
 import time
+import pdb
 
 import cv2
 import hydra
@@ -24,10 +25,16 @@ def configure_optimizer(optimizer_cfg, model):
                                      lr=optimizer_cfg.lr,
                                      eps=optimizer_cfg.eps,
                                      weight_decay=optimizer_cfg.weight_decay)
+    elif optimizer_cfg.name == 'sgd':
+        optimizer = torch.optim.SGD(model.parameters(),
+                                    lr=optimizer_cfg.lr,
+                                    momentum=optimizer_cfg.momentum,
+                                    nesterov=optimizer_cfg.nesterov,
+                                    weight_decay=optimizer_cfg.weight_decay)
     return optimizer
 
 def load_model(model_cfg, num_classes):
-    model = JITNet(num_classes)
+    model = JITNet(num_classes, **model_cfg.jitnet_params)
 
     states = torch.load(model_cfg.pretrained_ckpt)
     model_states = {k.replace('module.', ''): v for k,
@@ -44,6 +51,14 @@ def load_model(model_cfg, num_classes):
         filtered_model_states[k] = v
     load_ret = model.load_state_dict(filtered_model_states, strict=False)
     log.info(f"Vars not loaded {load_ret[0]}")
+
+    def set_bn_eval(module):
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+            print(module)
+            module.eval()
+
+    model.train()
+    #model.apply(set_bn_eval)
 
     return model
 
@@ -119,58 +134,40 @@ def visualize_result_frame(vid_out, frame, probs, preds, labels, label_weights, 
     ret = vid_out.write(vis_image)
 
 
-def update_stats(labels, pred_vals, class_tp, class_fp, class_fn,
-                 class_total, class_correct, weight_mask,
+def update_stats(tp, fp, fn, class_tp, class_fp, class_fn,
                  entropy_vals, frame_id, ran_teacher,
                  num_updates, frame_stats):
     eps = 1e-06
-    num_classes = len(class_total)
+    num_classes = tp.shape[0]
     curr_tp = np.zeros(num_classes, np.float32)
     curr_fp = np.zeros(num_classes, np.float32)
     curr_fn = np.zeros(num_classes, np.float32)
     curr_iou = np.zeros(num_classes, np.float32)
-    curr_correct = np.zeros(num_classes, np.float32)
-    curr_total = np.zeros(num_classes, np.float32)
-    correct_mask = (pred_vals == labels)
 
     for g in range(num_classes):
-        cls_mask = np.logical_and((labels == g), weight_mask)
-        cls_tp_mask = np.logical_and(cls_mask, correct_mask)
-        cls_tp = np.sum(cls_tp_mask)
-        curr_tp[g] = cls_tp
-        class_tp[g] = class_tp[g] + cls_tp
+        class_tp[g] = class_tp[g] + tp[g]
+        curr_tp[g] = tp[g]
 
-        cls_total = np.sum(cls_mask)
-        curr_total[g] = cls_total
-        curr_correct[g] = cls_tp
-        class_total[g] = class_total[g] + cls_total
-        class_correct[g] = class_correct[g] + cls_tp
+        class_fp[g] = class_fp[g] + fp[g]
+        curr_fp[g] = fp[g]
+        class_fn[g] = class_fn[g] + fn[g]
+        curr_fn[g] = fn[g]
 
-        pred_mask = np.logical_and((pred_vals == g), weight_mask)
-        cls_fp_mask = np.logical_and(np.logical_not(cls_mask), pred_mask)
-        cls_fn_mask = np.logical_and(cls_mask, np.logical_not(pred_mask))
-
-        cls_fp = np.sum(cls_fp_mask)
-        cls_fn = np.sum(cls_fn_mask)
-        curr_fp[g] = cls_fp
-        curr_fn[g] = cls_fn
-        class_fp[g] = class_fp[g] + cls_fp
-        class_fn[g] = class_fn[g] + cls_fn
-
-        cls_iou = (cls_tp + eps) / (cls_tp + cls_fp + cls_fn + eps)
+        cls_iou = (tp[g] + eps) / (tp[g] + fp[g] + fn[g] + eps)
         curr_iou[g] = cls_iou
 
     frame_stats[frame_id] = { 'tp': curr_tp,
                               'fp': curr_fp,
                               'fn': curr_fn,
                               'iou': curr_iou,
-                              'correct': curr_correct,
-                              'total': curr_total,
                               'average_entropy': entropy_vals,
                               'ran_teacher': ran_teacher,
                               'num_updates': num_updates }
 
 def train(cfg):
+    torch.manual_seed(cfg.exp.seed)
+    np.random.seed(cfg.exp.seed)
+
     # Init model, optimizer, loss, video stream
     stream, class_groups = load_video_stream(cfg.dataset)
     num_classes = len(class_groups) + 1
@@ -180,6 +177,7 @@ def train(cfg):
     model.to(device)
     optimizer = configure_optimizer(cfg.online_train.optimizer, model)
     criterion = torch.nn.CrossEntropyLoss(reduction='none')
+    criterion.to(device)
 
     # Online training stats
     train_cfg = cfg.online_train
@@ -249,7 +247,8 @@ def train(cfg):
             num_teacher_samples += 1
             start = time.time()
 
-             # Online optimization
+            # Online optimization
+            min_cls_scores = []
             while curr_updates < train_cfg.max_updates:
                 optimizer.zero_grad()
 
@@ -281,17 +280,19 @@ def train(cfg):
                 curr_updates = curr_updates + 1
 
                 # End training if min class accuracy > threshold
-                min_cls_scores = torch.min(cls_scores)
-                if min_cls_scores > train_cfg.accuracy_threshold:
+                min_cls_score = torch.min(cls_scores)
+                min_cls_scores.append(min_cls_score)
+                if min_cls_score > train_cfg.accuracy_threshold:
                     break
 
             end = time.time()
-            if min_cls_scores > train_cfg.accuracy_threshold:
+            if min_cls_scores[-1] > train_cfg.accuracy_threshold:
                 curr_stride_idx = min(curr_stride_idx + 1, len(training_strides) - 1)
             else:
                 curr_stride_idx = max(curr_stride_idx - 1, 0)
 
-            training_str = f"Fscore: {min_cls_scores:.5f}"
+            min_cls_scores = [f'{c:.3f}' for c in min_cls_scores]
+            training_str = f"Fscore: {min_cls_scores}"
             stride_str = (f"num_teacher_samples: {num_teacher_samples} "
                           f"num_updates: {num_updates} "
                           f"stride: {training_strides[curr_stride_idx]}")
@@ -301,19 +302,24 @@ def train(cfg):
             with torch.no_grad():
                 logits, probs, entropy = inference(model, in_images)
                 probs_max, preds = torch.max(probs, dim=1)
+                labels_onehot = F.one_hot(
+                    labels_vals, probs.shape[1]).permute(0, 3, 1, 2)  # [B, C, H, W]
+                preds_onehot = F.one_hot(preds, probs.shape[1]).permute(0, 3, 1, 2)  # [B, C, H, W]
+                fp = (preds_onehot * (1. - labels_onehot)).sum([0, 2, 3])  # [C]
+                tp = (preds_onehot * labels_onehot).sum([0, 2, 3])  # [C]
+                fn = ((1. - preds_onehot) * labels_onehot).sum([0, 2, 3])  # [C]
+                eps = 1e-6
+                cls_scores = (tp + eps) / (tp + fp + fn + eps)  # [C]
+
             end = time.time()
             training_str = ""
             stride_str = ""
 
         if train_cfg.stats_path:
-            update_stats(labels_vals[0].cpu().numpy(),
-                         preds[0].cpu().numpy(),
+            update_stats(tp.cpu().numpy(), fp.cpu().numpy(), fn.cpu().numpy(),
                          class_tp,
                          class_fp,
                          class_fn,
-                         class_total,
-                         class_correct,
-                         np.ones(labels_vals.shape, dtype=np.bool),
                          entropy.cpu().numpy(),
                          curr_frame,
                          len(training_str) > 0,
