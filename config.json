@@ -55,15 +55,13 @@
     "loss": "CrossEntropyLoss2d",
     "ignore_index": 255,
     "lr_scheduler": {
-        "type": "MultiStepLR",
+        "type": "Poly",
         "args": {
-            "milestones": [10, 20],
-            "gamma": 0.1
         }
     },
 
     "trainer": {
-        "epochs": 30,
+        "epochs": 40,
         "save_dir": "saved/",
         "save_period": 1,
 
