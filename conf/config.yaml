@@ -12,7 +12,7 @@ hydra:
         dir: ${exp.output_dir}/${exp.id}/${hydra.job.name}_${hydra.job.override_dirname}
     sweep:
         dir: ${exp.output_dir}/${exp.id}
-        subdir: ${hydra.job.name}_${hydra.job.override_dirname}
+        subdir: ${hydra.job.num}
     job:
         config:
             override_dirname:

@@ -3,3 +3,4 @@ dataset:
   data_dir: /home/cfan/lvsdataset
   sequence: samui_walking_street1
   num_frames: 100
+  start_frame: 0

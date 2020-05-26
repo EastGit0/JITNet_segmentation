@@ -39,8 +39,9 @@ def load_model(model_cfg, num_classes):
     model = JITNet(num_classes, **model_cfg.jitnet_params)
 
     states = torch.load(model_cfg.pretrained_ckpt)
+    model_key = 'state_dict' if 'state_dict' in states else 'model'
     model_states = {k.replace('module.', ''): v for k,
-                    v in states['state_dict'].items()}
+                    v in states[model_key].items()}
     filtered_model_states = {}
     for k, v in model_states.items():
         ignore = False
@@ -88,7 +89,8 @@ def load_video_stream(dataset_cfg):
     class_groups = [ [lvs_dataset.detectron_classes.index(c) for c in g] \
                      for g in class_groups]
 
-    stream = MaskRCNNSequenceStream(video_files, detecttion_files)
+    stream = MaskRCNNSequenceStream(video_files, detecttion_files,
+                                    start_frame=dataset_cfg.start_frame)
 
     return stream, class_groups
 
@@ -165,6 +167,7 @@ def train(cfg):
     # Online training stats
     train_cfg = cfg.online_train
     training_strides = train_cfg.training_strides
+    start_frame = cfg.dataset.start_frame
     curr_stride_idx = 0
     num_teacher_samples = 0
     num_updates = 0
@@ -179,6 +182,9 @@ def train(cfg):
                                   (3 * int(train_cfg.image_width / 2),
                                    int(train_cfg.image_height / 2)))
         assert vid_out
+
+    if not train_cfg.online_train:
+        model.eval()
 
     # Online training
     for curr_frame, (frame, boxes, classes, scores, masks, num_objects, frame_id) in enumerate(stream):
@@ -251,7 +257,7 @@ def train(cfg):
                     fp = (preds_onehot * (1. - labels_onehot)).sum([0, 2, 3])  # [C]
                     tp = (preds_onehot * labels_onehot).sum([0, 2, 3])  # [C]
                     fn = ((1. - preds_onehot) * labels_onehot).sum([0, 2, 3])  # [C]
-                    eps = 100.
+                    eps = 1e-6
                     cls_scores = (tp + eps) / (tp + fp + fn + eps)  # [C]
 
                 num_updates = num_updates + 1
@@ -261,6 +267,14 @@ def train(cfg):
                 min_cls_score = torch.min(cls_scores)
                 min_cls_scores.append(min_cls_score)
                 if min_cls_score > train_cfg.accuracy_threshold:
+                    if train_cfg.checkpoint_good_model:
+                        log.info(f'Checkpoint frame_{curr_frame + start_frame}.pth')
+                        states = {
+                            'model': model.state_dict(),
+                            'optimizer': optimizer.state_dict(),
+                            'frame_id': curr_frame + start_frame
+                        }
+                        torch.save(states, f'frame_{curr_frame + start_frame}.pth')
                     break
 
             end = time.time()
@@ -290,7 +304,7 @@ def train(cfg):
                 cls_scores = (tp + eps) / (tp + fp + fn + eps)  # [C]
 
             end = time.time()
-            training_str = ""
+            training_str = f"Fscore: {torch.min(cls_scores):.3f}"
             stride_str = ""
 
         if train_cfg.stats_path:
@@ -299,8 +313,8 @@ def train(cfg):
                          fn.cpu().numpy(),
                          cls_scores.cpu().numpy(),
                          entropy.cpu().numpy(),
-                         curr_frame,
-                         len(training_str) > 0,
+                         curr_frame + start_frame,
+                         len(stride_str) > 0,
                          curr_updates,
                          per_frame_stats)
 
@@ -314,7 +328,7 @@ def train(cfg):
                                    len(class_groups),
                                    train_cfg)
 
-        log.info(f'frame: {curr_frame:05d} time: {end - start:.5f}s {training_str} {stride_str}')
+        log.info(f'frame: {curr_frame + start_frame:05d} time: {end - start:.5f}s {training_str} {stride_str}')
 
     if train_cfg.stats_path:
         np.save(train_cfg.stats_path, [per_frame_stats])
@@ -322,7 +336,7 @@ def train(cfg):
         class_names = ['background'] + ['_'.join(g) for g in class_names]
         full_segment_iou.make_table(class_names,
                                     [[f'{train_cfg.stats_path}.npy', 'jitnet']],
-                                    train_cfg.max_frames,
+                                    start_frame + train_cfg.max_frames,
                                     'result.csv',
                                     [],
                                     0

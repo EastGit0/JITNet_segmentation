@@ -198,8 +198,7 @@ class MaskRCNNStream:
         while labels_not_found:
             frame_id = self.cap.get(cv2.CAP_PROP_POS_FRAMES)
             ret, frame = self.cap.read()
-            if self.cap.get(cv2.CAP_PROP_CONVERT_RGB):
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             if (not ret) or (frame_id >= self.end_frame - 1):
                 if self.loop:

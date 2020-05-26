@@ -20,5 +20,6 @@ online_train:
   image_std: [0.24272706, 0.23649098, 0.23429529]
   online_train: true
   scale_boxes: true
-  video_output_path: 'video.avi'
+  video_output_path: null
   stats_path: 'stats'
+  checkpoint_good_model: false
