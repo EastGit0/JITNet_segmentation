@@ -9,11 +9,11 @@ class basic_block(nn.Module):
     def __init__(self, in_channels, out_channels, stride, upsample=1,
                  bn_eps=1e-5,
                  bn_momentum=0.003,
-                 bn_track_trunning_stats=True):
+                 bn_track_running_stats=True):
         super(basic_block, self).__init__()
         norm_layer = nn.BatchNorm2d
         self.bn = norm_layer(in_channels, eps=bn_eps, momentum=bn_momentum,
-                             track_running_stats=bn_track_trunning_stats)
+                             track_running_stats=bn_track_running_stats)
         self.relu = nn.ReLU(inplace=True)
         self.conv1x1 = nn.Conv2d(in_channels, out_channels,
                                  kernel_size=1, stride=stride)
@@ -51,20 +51,20 @@ class JITNet(BaseModel):
                  decoder_upsamples=[2, 2, 4, 1, 2],
                  bn_eps=1e-5,
                  bn_momentum=0.003,
-                 bn_track_trunning_stats=True,
+                 bn_track_running_stats=True,
                  **_):
         super(JITNet, self).__init__()
 
         self.enc1 = nn.Sequential(
             nn.Conv2d(3, encoder_channels[0], 3, 2, 1),
             nn.BatchNorm2d(encoder_channels[0], eps=bn_eps, momentum=bn_momentum,
-                           track_running_stats=bn_track_trunning_stats),
+                           track_running_stats=bn_track_running_stats),
             nn.ReLU(inplace=True)
         )
         self.enc2 = nn.Sequential(
             nn.Conv2d(encoder_channels[0], encoder_channels[1], 3, 2, 1),
             nn.BatchNorm2d(encoder_channels[1], eps=bn_eps, momentum=bn_momentum,
-                           track_running_stats=bn_track_trunning_stats),
+                           track_running_stats=bn_track_running_stats),
             nn.ReLU(inplace=True)
         )
 
@@ -74,7 +74,8 @@ class JITNet(BaseModel):
                                                encoder_channels[i],
                                                encoder_strides[i],
                                                bn_eps=bn_eps,
-                                               bn_momentum=bn_momentum))
+                                               bn_momentum=bn_momentum,
+                                               bn_track_running_stats=bn_track_running_stats))
         self.enc_blocks = nn.ModuleList(self.enc_blocks)
         self.dec_blocks = []
         prev_c = encoder_channels[-1]
@@ -84,20 +85,21 @@ class JITNet(BaseModel):
                                                decoder_strides[i],
                                                decoder_upsamples[i],
                                                bn_eps=bn_eps,
-                                               bn_momentum=bn_momentum))
+                                               bn_momentum=bn_momentum,
+                                               bn_track_running_stats=bn_track_running_stats))
             prev_c = decoder_channels[i] + encoder_channels[-i - 2]
         self.dec_blocks = nn.ModuleList(self.dec_blocks)
 
         self.dec1 = nn.Sequential(
             nn.Conv2d(decoder_channels[-3], decoder_channels[-2], 3, 1, 1),
             nn.BatchNorm2d(decoder_channels[-2], eps=bn_eps, momentum=bn_momentum,
-                           track_running_stats=bn_track_trunning_stats),
+                           track_running_stats=bn_track_running_stats),
             nn.ReLU(inplace=True)
         )
         self.dec2 = nn.Sequential(
             nn.Conv2d(decoder_channels[-2], decoder_channels[-1], 3, 1, 1),
             nn.BatchNorm2d(decoder_channels[-1], eps=bn_eps, momentum=bn_momentum,
-                           track_running_stats=bn_track_trunning_stats),
+                           track_running_stats=bn_track_running_stats),
             nn.ReLU(inplace=True)
         )
 
