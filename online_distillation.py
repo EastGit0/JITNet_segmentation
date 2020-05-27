@@ -17,8 +17,6 @@ from dataloaders.maskrcnn_stream import (batch_segmentation_masks,
                                          MaskRCNNSequenceStream)
 import dataloaders.lvs_dataset as lvs_dataset
 
-
-
 log = logging.getLogger(__name__)
 
 def configure_optimizer(optimizer_cfg, model):
@@ -80,6 +78,8 @@ def load_video_stream(dataset_cfg):
             dataset_cfg.data_dir, dataset_cfg.sequence, s[0]))
         detecttion_files.append(os.path.join(
             dataset_cfg.data_dir, dataset_cfg.sequence, s[1]))
+    video_files = video_files[:dataset_cfg.sequence_limit]
+    detecttion_files = detecttion_files[:dataset_cfg.sequence_limit]
 
     class_groups = lvs_dataset.sequence_to_class_groups_stable[dataset_cfg.sequence]
     log.info(video_files)
