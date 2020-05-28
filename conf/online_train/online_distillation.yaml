@@ -10,7 +10,7 @@ online_train:
   training_strides: [8, 16, 32, 64]
   inference_stride: 1
   accuracy_threshold: 0.8
-  max_updates: 8
+  max_updates: 16
   fine_classes: true
   sports_classes: false
   max_frames: 100000
@@ -22,4 +22,4 @@ online_train:
   scale_boxes: true
   video_output_path: null
   stats_path: 'stats'
-  checkpoint_good_model: false
+  checkpoint_threshold: 100.

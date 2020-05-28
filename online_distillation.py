@@ -100,9 +100,21 @@ def inference(model, images):
         probs = F.softmax(logits, dim=1)
         log_probs = (probs + 1e-9).log()
         entropy = -(probs * log_probs).sum(1).mean()
+        probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
 
-    return logits, probs, entropy
+    return logits, probs, entropy, probs_max, preds
 
+def calculate_class_iou(preds, labels, num_classes):
+    with torch.no_grad():
+        labels_onehot = F.one_hot(labels, num_classes).bool()  # [B, H, W, C]
+        preds_onehot = F.one_hot(preds, num_classes).bool()  # [B, H, W, C]
+        fp = (preds_onehot & ~labels_onehot).float().sum([0, 1, 2])  # [C]
+        tp = (preds_onehot & labels_onehot).float().sum([0, 1, 2])  # [C]
+        fn = (~preds_onehot & labels_onehot).float().sum([0, 1, 2])  # [C]
+        eps = 1e-6
+        cls_ious = (tp + eps) / (tp + fp + fn + eps)  # [C]
+
+        return tp, fp, fn, cls_ious
 
 def visualize_result_frame(vid_out, frame, probs, preds, labels, label_weights, num_classes, train_cfg):
     # frame: [B, C, H, W]
@@ -236,7 +248,9 @@ def train(cfg):
             while curr_updates < train_cfg.max_updates:
                 optimizer.zero_grad()
 
-                logits, probs, entropy = inference(model, in_images)
+                logits, probs, entropy, probs_max, preds = \
+                    inference(model, in_images)
+                tp, fp, fn, cls_scores = calculate_class_iou(preds, labels_vals, num_classes)
                 loss = criterion(logits, labels_vals)  # [B, H, W]
 
                 # Weight foreground and background loss
@@ -248,34 +262,26 @@ def train(cfg):
                 loss.backward()
                 optimizer.step()
 
-                # Training stats
-                with torch.no_grad():
-                    probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
-                    labels_onehot = F.one_hot(
-                        labels_vals, probs.shape[1]).permute(0, 3, 1, 2)  # [B, C, H, W]
-                    preds_onehot = F.one_hot(preds, probs.shape[1]).permute(0, 3, 1, 2)  # [B, C, H, W]
-                    fp = (preds_onehot * (1. - labels_onehot)).sum([0, 2, 3])  # [C]
-                    tp = (preds_onehot * labels_onehot).sum([0, 2, 3])  # [C]
-                    fn = ((1. - preds_onehot) * labels_onehot).sum([0, 2, 3])  # [C]
-                    eps = 1e-6
-                    cls_scores = (tp + eps) / (tp + fp + fn + eps)  # [C]
-
                 num_updates = num_updates + 1
                 curr_updates = curr_updates + 1
 
-                # End training if min class accuracy > threshold
                 min_cls_score = torch.min(cls_scores)
                 min_cls_scores.append(min_cls_score)
+
+                # Checkpoint
+                if min_cls_score > train_cfg.checkpoint_threshold:
+                    log.info(f'Checkpoint frame_{curr_frame + start_frame}.pth')
+                    states = {
+                        'model': model.state_dict(),
+                        'optimizer': optimizer.state_dict(),
+                        'frame_id': curr_frame + start_frame,
+                        'label': labels_vals[0].cpu()
+                    }
+                    torch.save(states, f'frame_{curr_frame + start_frame}.pth')
+
+                # End training if min class accuracy > threshold
                 if min_cls_score > train_cfg.accuracy_threshold:
-                    if train_cfg.checkpoint_good_model:
-                        log.info(f'Checkpoint frame_{curr_frame + start_frame}.pth')
-                        states = {
-                            'model': model.state_dict(),
-                            'optimizer': optimizer.state_dict(),
-                            'frame_id': curr_frame + start_frame
-                        }
-                        torch.save(states, f'frame_{curr_frame + start_frame}.pth')
-                    break
+                   break
 
             end = time.time()
             if min_cls_scores[-1] > train_cfg.accuracy_threshold:
@@ -292,16 +298,11 @@ def train(cfg):
         elif curr_frame % train_cfg.inference_stride == 0:
             start = time.time()
             with torch.no_grad():
-                logits, probs, entropy = inference(model, in_images)
-                probs_max, preds = torch.max(probs, dim=1)
-                labels_onehot = F.one_hot(
-                    labels_vals, probs.shape[1]).permute(0, 3, 1, 2)  # [B, C, H, W]
-                preds_onehot = F.one_hot(preds, probs.shape[1]).permute(0, 3, 1, 2)  # [B, C, H, W]
-                fp = (preds_onehot * (1. - labels_onehot)).sum([0, 2, 3])  # [C]
-                tp = (preds_onehot * labels_onehot).sum([0, 2, 3])  # [C]
-                fn = ((1. - preds_onehot) * labels_onehot).sum([0, 2, 3])  # [C]
-                eps = 1e-6
-                cls_scores = (tp + eps) / (tp + fp + fn + eps)  # [C]
+                logits, probs, entropy, probs_max, preds = \
+                        inference(model, in_images)
+                tp, fp, fn, cls_scores = calculate_class_iou(preds,
+                                                             labels_vals,
+                                                             num_classes)
 
             end = time.time()
             training_str = f"Fscore: {torch.min(cls_scores):.3f}"

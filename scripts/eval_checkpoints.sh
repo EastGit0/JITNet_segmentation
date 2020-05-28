@@ -12,7 +12,6 @@ do
     CUDA_VISIBLE_DEVICES=1 python online_distillation.py  \
         online_train.max_frames=2500 \
         exp.id=${SEQ}_ckpts_eval_$f \
-        online_train.max_updates=16 \
         dataset.sequence=$SEQ \
         dataset.start_frame=$f \
         model.pretrained_ckpt=$CKPT_PATH/frame_$f.pth \
