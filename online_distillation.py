@@ -31,6 +31,11 @@ def configure_optimizer(optimizer_cfg, model, ckpt_states=None):
                                     momentum=optimizer_cfg.momentum,
                                     nesterov=optimizer_cfg.nesterov,
                                     weight_decay=optimizer_cfg.weight_decay)
+    elif optimizer_cfg.name == 'rmsprop':
+        optimizer = torch.optim.RMSprop(model.parameters(),
+                                        lr=optimizer_cfg.lr,
+                                        alpha=optimizer_cfg.alpha,
+                                        weight_decay=optimizer_cfg.weight_decay)
 
     if ckpt_states:
         if 'optimizer' in ckpt_states:
@@ -183,6 +188,11 @@ def train(cfg):
     criterion = torch.nn.CrossEntropyLoss(reduction='none')
     criterion.to(device)
 
+    if cfg.online_train.ema:
+        model_ema, _ = load_model(cfg.model, num_classes)
+        model_ema.to(device)
+        model_ema.eval()
+
     # Online training stats
     train_cfg = cfg.online_train
     training_strides = train_cfg.training_strides
@@ -268,6 +278,11 @@ def train(cfg):
                 loss.backward()
                 optimizer.step()
 
+                if train_cfg.ema:
+                    with torch.no_grad():
+                        for p1, p2 in zip(model.parameters(), model_ema.parameters()):
+                            p2.data = p2.data * train_cfg.ema_m + p1.data * (1. - train_cfg.ema_m)
+
                 num_updates = num_updates + 1
                 curr_updates = curr_updates + 1
 
@@ -305,7 +320,7 @@ def train(cfg):
             start = time.time()
             with torch.no_grad():
                 logits, probs, entropy, probs_max, preds = \
-                        inference(model, in_images)
+                        inference(model if not train_cfg.ema else model_ema, in_images)
                 tp, fp, fn, cls_scores = calculate_class_iou(preds,
                                                              labels_vals,
                                                              num_classes)
@@ -356,6 +371,8 @@ def train(cfg):
         'model': model.state_dict(),
         'optimizer': optimizer.state_dict(),
     }
+    if train_cfg.ema:
+        states['model_ema'] = model_ema.state_dict()
     torch.save(states, f'final.pth')
 
 

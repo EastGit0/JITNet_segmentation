@@ -24,3 +24,5 @@ online_train:
   stats_path: 'stats'
   checkpoint_threshold: 100.
   resume_online: false
+  ema: false
+  ema_m: 0.99
