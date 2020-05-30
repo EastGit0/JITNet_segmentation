@@ -1,7 +1,7 @@
 dataset:
   name: lvs
-  data_dir: /home/cfan/lvsdataset
+  data_dir: /data3/cfan/lvsdataset
   sequence: samui_walking_street1
   num_frames: 100
   start_frame: 0
-  sequence_limit: 1
+  sequence_id: 0

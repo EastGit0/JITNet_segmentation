@@ -1,6 +1,10 @@
 import os, sys
 import glob
 import numpy as np
+import torch
+from torch.utils.data import Dataset
+import h5py
+import torchvision.transforms as transforms
 
 video_sequences = ['hockey1', 'tennis1', 'tennis2', 'tennis3', \
                    'ice_hockey_ego_1', 'basketball_ego1', 'volleyball1', \
@@ -150,3 +154,39 @@ def get_sequence_to_video_list(video_path, detections_path, sequence_list,\
                 if det_name in det_names:
                     sequence_to_video_list[v].append((sn, det_name))
     return sequence_to_video_list
+
+
+class LVSDataset(Dataset):
+    def __init__(self, data_dir, sequence, video_id,
+                 start_frame=0, max_frames=0, stride=1):
+        self.data_path = os.path.join(data_dir, sequence, f'{sequence}{video_id}.hdf5')
+        with h5py.File(self.data_path, 'r') as f:
+            total = len(f['frames'])
+        self.start_frame = start_frame
+        if max_frames > 0:
+            self.end_frame = min(total, start_frame + max_frames)
+        else:
+            self.end_frame = total
+        self.stride = stride
+        self.frame_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.43931922, 0.41310471, 0.37480941],
+                                 std=[0.24272706, 0.23649098, 0.23429529])
+        ])
+
+    def __len__(self):
+        return (self.end_frame - self.start_frame) // self.stride
+
+    def __getitem__(self, index):
+        frame_id = index * self.stride
+        with h5py.File(self.data_path, 'r') as f:
+            frame = f['frames'][frame_id]
+            label = f['labels'][frame_id]
+            label_weight = f['label_weights'][frame_id]
+
+        frame = self.frame_transform(frame[0])
+        label = torch.tensor(label, dtype=torch.long)
+        label_weight = torch.tensor(label_weight, dtype=torch.float)
+
+        return frame, label, label_weight
+

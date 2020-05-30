@@ -19,7 +19,7 @@ import dataloaders.lvs_dataset as lvs_dataset
 
 log = logging.getLogger(__name__)
 
-def configure_optimizer(optimizer_cfg, model):
+def configure_optimizer(optimizer_cfg, model, ckpt_states=None):
     if optimizer_cfg.name == 'adam':
         optimizer = torch.optim.Adam(model.parameters(),
                                      lr=optimizer_cfg.lr,
@@ -31,6 +31,11 @@ def configure_optimizer(optimizer_cfg, model):
                                     momentum=optimizer_cfg.momentum,
                                     nesterov=optimizer_cfg.nesterov,
                                     weight_decay=optimizer_cfg.weight_decay)
+
+    if ckpt_states:
+        if 'optimizer' in ckpt_states:
+            optimizer.load_state_dict(ckpt_states['optimizer'])
+
     return optimizer
 
 def load_model(model_cfg, num_classes):
@@ -61,7 +66,7 @@ def load_model(model_cfg, num_classes):
     model.train()
     #model.apply(set_bn_eval)
 
-    return model
+    return model, states
 
 def load_video_stream(dataset_cfg):
     sequence_to_video_list = lvs_dataset.get_sequence_to_video_list(
@@ -78,8 +83,8 @@ def load_video_stream(dataset_cfg):
             dataset_cfg.data_dir, dataset_cfg.sequence, s[0]))
         detecttion_files.append(os.path.join(
             dataset_cfg.data_dir, dataset_cfg.sequence, s[1]))
-    video_files = video_files[:dataset_cfg.sequence_limit]
-    detecttion_files = detecttion_files[:dataset_cfg.sequence_limit]
+    video_files = video_files[dataset_cfg.sequence_id]
+    detecttion_files = detecttion_files[dataset_cfg.sequence_id]
 
     class_groups = lvs_dataset.sequence_to_class_groups_stable[dataset_cfg.sequence]
     log.info(video_files)
@@ -89,7 +94,7 @@ def load_video_stream(dataset_cfg):
     class_groups = [ [lvs_dataset.detectron_classes.index(c) for c in g] \
                      for g in class_groups]
 
-    stream = MaskRCNNSequenceStream(video_files, detecttion_files,
+    stream = MaskRCNNSequenceStream([video_files], [detecttion_files],
                                     start_frame=dataset_cfg.start_frame)
 
     return stream, class_groups
@@ -170,9 +175,11 @@ def train(cfg):
     num_classes = len(class_groups) + 1
     log.info(f'Number of class {num_classes}')
     device = torch.device('cuda')
-    model = load_model(cfg.model, num_classes)
+    model, ckpt_states = load_model(cfg.model, num_classes)
     model.to(device)
-    optimizer = configure_optimizer(cfg.online_train.optimizer, model)
+    optimizer = configure_optimizer(cfg.online_train.optimizer,
+                                    model,
+                                    ckpt_states if cfg.online_train.resume_online else None)
     criterion = torch.nn.CrossEntropyLoss(reduction='none')
     criterion.to(device)
 
@@ -204,7 +211,6 @@ def train(cfg):
             break
 
         # Video frame and maskrcnn outputs
-        frame = cv2.resize(frame, (train_cfg.image_width, train_cfg.image_height))
         frame = frame.astype(np.float) / 255.
         frame = (frame - np.array(train_cfg.image_mean)) / np.array(train_cfg.image_std)
         frame = np.expand_dims(frame, axis=0)
@@ -345,6 +351,12 @@ def train(cfg):
 
     if vid_out:
         vid_out.release()
+
+    states = {
+        'model': model.state_dict(),
+        'optimizer': optimizer.state_dict(),
+    }
+    torch.save(states, f'final.pth')
 
 
 @hydra.main(config_path='conf/config.yaml')

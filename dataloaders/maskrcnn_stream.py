@@ -157,7 +157,7 @@ def batch_segmentation_masks(batch_size,
 class MaskRCNNStream:
     def __init__(self, video_stream_path, detections_path,
                  start_frame=0, num_frames=None, stride=1,
-                 loop=False):
+                 loop=False, resize=(1280, 720)):
         assert(os.path.isfile(video_stream_path))
         assert(os.path.isfile(detections_path))
         self.cap = cv2.VideoCapture(video_stream_path)
@@ -166,6 +166,7 @@ class MaskRCNNStream:
         self.rate = int(self.cap.get(cv2.CAP_PROP_FPS))
         self.length = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.num_frames = num_frames
+        self.resize = resize
 
         self.detections_path = detections_path
         self.detections = None
@@ -198,7 +199,9 @@ class MaskRCNNStream:
         while labels_not_found:
             frame_id = self.cap.get(cv2.CAP_PROP_POS_FRAMES)
             ret, frame = self.cap.read()
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = cv2.resize(frame, self.resize)
+            frame = frame[...,::-1].copy()
 
             if (not ret) or (frame_id >= self.end_frame - 1):
                 if self.loop:

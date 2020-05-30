@@ -9,3 +9,4 @@ future
 scikit-learn
 scikit-image
 hydra-core
+fvcore

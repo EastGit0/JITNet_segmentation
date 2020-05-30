@@ -1,0 +1,22 @@
+online_train:
+  optimizer:
+#    name: adam
+#    lr: 0.1
+#    weight_decay: 4e-5
+#    eps: 1.0
+    name: sgd
+    lr: 0.01
+    weight_decay: 4e-5
+    momentum: 0.9
+    nesterov: True
+  scheduler: null
+#  scheduler:
+#    name: 'multi_step'
+#    milestones: [10, 20]
+#    gamma: 0.1
+  fg_weight: 10.0
+  bg_weight: 1.0
+  training_stride: 8
+  max_frames: 100000
+  batch_size: 32
+  epoch: 30

@@ -23,3 +23,4 @@ online_train:
   video_output_path: null
   stats_path: 'stats'
   checkpoint_threshold: 100.
+  resume_online: false
