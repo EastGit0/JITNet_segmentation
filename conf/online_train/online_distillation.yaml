@@ -26,3 +26,8 @@ online_train:
   resume_online: false
   ema: false
   ema_m: 0.99
+  num_models: 1
+  accuracy_lower_bound: 0.5
+  warmup: 256
+  model_avg_m: 0.9
+  model_perf_win: 64

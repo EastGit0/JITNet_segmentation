@@ -43,9 +43,7 @@ def configure_optimizer(optimizer_cfg, model, ckpt_states=None):
 
     return optimizer
 
-def load_model(model_cfg, num_classes):
-    model = JITNet(num_classes, **model_cfg.jitnet_params)
-
+def load_model(model_cfg, num_classes, num_models=1):
     states = torch.load(model_cfg.pretrained_ckpt)
     model_key = 'state_dict' if 'state_dict' in states else 'model'
     model_states = {k.replace('module.', ''): v for k,
@@ -60,18 +58,25 @@ def load_model(model_cfg, num_classes):
         if ignore:
             continue
         filtered_model_states[k] = v
-    load_ret = model.load_state_dict(filtered_model_states, strict=False)
-    log.info(f"Vars not loaded {load_ret[0]}")
 
-    def set_bn_eval(module):
-        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
-            print(module)
-            module.eval()
+    models = []
+    for i in range(num_models):
+        model = JITNet(num_classes, **model_cfg.jitnet_params)
 
-    model.train()
-    #model.apply(set_bn_eval)
+        load_ret = model.load_state_dict(filtered_model_states, strict=False)
+        log.info(f"Vars not loaded {load_ret[0]}")
 
-    return model, states
+        def set_bn_eval(module):
+            if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+                print(module)
+                module.eval()
+
+        model.train()
+        #model.apply(set_bn_eval)
+
+        models.append(model)
+
+    return models, states
 
 def load_video_stream(dataset_cfg):
     sequence_to_video_list = lvs_dataset.get_sequence_to_video_list(
@@ -171,6 +176,65 @@ def update_stats(tp, fp, fn, iou,
                               'ran_teacher': ran_teacher,
                               'num_updates': num_updates }
 
+
+def profile_models(models, model_perfs,
+                   curr_frame, curr_model_idx, curr_stride_idx,
+                   images, labels, num_classes, train_cfg):
+    next_model_idx = curr_model_idx
+
+    model_min_cls_scores = []
+    model_mean_cls_scores = []
+    for i, model in enumerate(models):
+        with torch.no_grad():
+            logits, probs, entropy, probs_max, preds = \
+                inference(model, images)
+            tp, fp, fn, cls_scores = calculate_class_iou(preds, labels, num_classes)
+            model_min_cls_scores.append(torch.min(cls_scores))
+            model_mean_cls_scores.append(torch.mean(cls_scores[1:]))
+
+    best_model_idx = np.argmax(model_mean_cls_scores)
+    best_model_acc = model_min_cls_scores[best_model_idx]
+
+    for i, p in enumerate(model_perfs):
+        p.append((curr_frame, model_mean_cls_scores[i].item()))
+
+    if curr_frame < train_cfg.warmup:
+        for i in np.argsort(model_mean_cls_scores):
+            if i != curr_model_idx:
+                next_model_idx = i
+    else:
+        avg_model_perf = [[] for _ in models]
+        for i in range(1, 8):
+            frame = model_perfs[0][-i][0]
+            if curr_frame - frame > train_cfg.model_perf_win:
+                break
+            for j in range(len(models)):
+                avg_model_perf[j].append(model_perfs[j][-i][1])
+        avg_model_perf = [np.mean(p) for p in avg_model_perf]
+        best_avg_perf_model = np.argmax(avg_model_perf)
+        avg_model_perf_str = [f'{p:.4f}' for p in avg_model_perf]
+        log.info(f'avg_model_perf={avg_model_perf_str} best_perf_model={best_avg_perf_model}')
+        next_model_idx = best_avg_perf_model
+
+    #if curr_stride_idx == 0:
+    #    if curr_frame < train_cfg.warmup:
+    #        # Model index from low to high
+    #        for i in np.argsort(model_min_cls_scores):
+    #            if i != curr_model_idx:
+    #                next_model_idx = i
+    #    else:
+    #        next_model_idx = curr_model_idx
+    #elif curr_stride_idx == 1:
+    #    if model_min_cls_scores[curr_model_idx] < train_cfg.accuracy_lower_bound:
+    #        # Model index from high to low
+    #        for i in np.argsort(model_min_cls_scores)[::-1]:
+    #            if i != curr_model_idx:
+    #                next_model_idx = i
+    #                break
+
+    return next_model_idx, best_model_idx, best_model_acc
+
+
 def train(cfg):
     torch.manual_seed(cfg.exp.seed)
     np.random.seed(cfg.exp.seed)
@@ -180,11 +244,14 @@ def train(cfg):
     num_classes = len(class_groups) + 1
     log.info(f'Number of class {num_classes}')
     device = torch.device('cuda')
-    model, ckpt_states = load_model(cfg.model, num_classes)
-    model.to(device)
-    optimizer = configure_optimizer(cfg.online_train.optimizer,
-                                    model,
-                                    ckpt_states if cfg.online_train.resume_online else None)
+    models, ckpt_states = load_model(
+        cfg.model, num_classes, cfg.online_train.num_models)
+    for m in models:
+        m.to(device)
+    optimizers = [configure_optimizer(cfg.online_train.optimizer,
+                                      m,
+                                      ckpt_states if cfg.online_train.resume_online else None)
+                  for m in models]
     criterion = torch.nn.CrossEntropyLoss(reduction='none')
     criterion.to(device)
 
@@ -198,10 +265,14 @@ def train(cfg):
     training_strides = train_cfg.training_strides
     start_frame = cfg.dataset.start_frame
     curr_stride_idx = 0
+    curr_model_idx = 0
+    eval_model_idx = 0
+    best_model_acc = 0.0
     num_teacher_samples = 0
     num_updates = 0
     per_frame_stats = {}
     class_iou = np.zeros(num_classes, np.float32)
+    model_perfs = [[] for _ in models]
 
     vid_out = None
     if train_cfg.video_output_path:
@@ -213,7 +284,8 @@ def train(cfg):
         assert vid_out
 
     if not train_cfg.online_train:
-        model.eval()
+        for m in models:
+            m.eval()
 
     # Online training
     for curr_frame, (frame, boxes, classes, scores, masks, num_objects, frame_id) in enumerate(stream):
@@ -261,6 +333,24 @@ def train(cfg):
 
             # Online optimization
             min_cls_scores = []
+
+            # Profile models
+            if len(models) > 1:
+                new_model_idx, best_model_idx, best_model_acc = \
+                    profile_models(models, model_perfs, curr_frame, curr_model_idx, curr_stride_idx,
+                                               in_images, labels_vals, num_classes,
+                                               train_cfg)
+                if eval_model_idx != best_model_idx:
+                    eval_model_idx = best_model_idx
+                if new_model_idx != curr_model_idx:
+                    curr_model_idx = new_model_idx
+                    curr_stride_idx = 0
+                    if curr_frame > train_cfg.warmup:
+                        optimizers[curr_model_idx] = configure_optimizer(train_cfg.optimizer, models[curr_model_idx])
+                log.info(f'curr_model_idx={curr_model_idx} eval_model_idx={eval_model_idx}')
+
+            model = models[curr_model_idx]
+            optimizer = optimizers[curr_model_idx]
             while curr_updates < train_cfg.max_updates:
                 optimizer.zero_grad()
 
@@ -305,10 +395,23 @@ def train(cfg):
                    break
 
             end = time.time()
+
+            with torch.no_grad():
+                for i, model in enumerate(models):
+                    if i == curr_model_idx:
+                        continue
+                    for p1, p2 in zip(model.parameters(), models[curr_model_idx].parameters()):
+                        momentum = train_cfg.model_avg_m
+                        p1.data = p1.data * momentum + p2.data * (1 - momentum)
+
             if min_cls_scores[-1] > train_cfg.accuracy_threshold:
                 curr_stride_idx = min(curr_stride_idx + 1, len(training_strides) - 1)
             else:
                 curr_stride_idx = max(curr_stride_idx - 1, 0)
+
+            if min_cls_scores[-1] > best_model_acc and eval_model_idx != curr_model_idx:
+                eval_model_idx = curr_model_idx
+                log.info(f'eval model index {eval_model_idx}')
 
             min_cls_scores = [f'{c:.3f}' for c in min_cls_scores]
             training_str = f"Fscore: {min_cls_scores}"
@@ -318,6 +421,7 @@ def train(cfg):
 
         elif curr_frame % train_cfg.inference_stride == 0:
             start = time.time()
+            model = models[curr_model_idx]
             with torch.no_grad():
                 logits, probs, entropy, probs_max, preds = \
                         inference(model if not train_cfg.ema else model_ema, in_images)

@@ -44,6 +44,7 @@ def train(cfg):
 
     device = torch.device('cuda')
     model, _ = load_model(cfg.model, num_classes)
+    model = model[0]
     model.to(device)
     optimizer = configure_optimizer(cfg.online_train.optimizer, model)
     scheduler = None
