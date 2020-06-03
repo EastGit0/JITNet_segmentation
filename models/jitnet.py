@@ -159,6 +159,21 @@ class JITNet(BaseModel):
         for module in self.modules():
             if isinstance(module, nn.BatchNorm2d): module.eval()
 
+    @staticmethod
+    def _set_requires_grad(m, requires_grad):
+        for p in m.parameters():
+            p.requires_grad = requires_grad
+
+    def freeze_enc(self):
+        self.enc1.apply(lambda m: JITNet._set_requires_grad(m, False))
+        self.enc2.apply(lambda m: JITNet._set_requires_grad(m, False))
+        self.enc_blocks.apply(lambda m: JITNet._set_requires_grad(m, False))
+
+    def freeze_dec(self):
+        self.dec_blocks.apply(lambda m: JITNet._set_requires_grad(m, False))
+        self.dec1.apply(lambda m: JITNet._set_requires_grad(m, False))
+        #self.dec2.apply(lambda m: JITNet._set_requires_grad(m, False))
+
 
 if __name__ == "__main__":
     model = JITNet(81)

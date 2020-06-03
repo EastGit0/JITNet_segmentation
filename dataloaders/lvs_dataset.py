@@ -184,7 +184,7 @@ class LVSDataset(Dataset):
             label = f['labels'][frame_id]
             label_weight = f['label_weights'][frame_id]
 
-        frame = self.frame_transform(frame[0])
+        frame = self.frame_transform(frame)
         label = torch.tensor(label, dtype=torch.long)
         label_weight = torch.tensor(label_weight, dtype=torch.float)
 

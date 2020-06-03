@@ -20,7 +20,7 @@ online_train:
   image_std: [0.24272706, 0.23649098, 0.23429529]
   online_train: true
   scale_boxes: true
-  video_output_path: null
+  video: null
   stats_path: 'stats'
   checkpoint_threshold: 100.
   resume_online: false
@@ -31,3 +31,5 @@ online_train:
   warmup: 256
   model_avg_m: 0.9
   model_perf_win: 64
+  freeze_enc: false
+  freeze_dec: false

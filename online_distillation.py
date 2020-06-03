@@ -260,6 +260,14 @@ def train(cfg):
         model_ema.to(device)
         model_ema.eval()
 
+    if cfg.online_train.freeze_enc:
+        for m in models:
+            m.freeze_enc()
+
+    if cfg.online_train.freeze_dec:
+        for m in models:
+            m.freeze_dec()
+
     # Online training stats
     train_cfg = cfg.online_train
     training_strides = train_cfg.training_strides
@@ -275,9 +283,10 @@ def train(cfg):
     model_perfs = [[] for _ in models]
 
     vid_out = None
-    if train_cfg.video_output_path:
-        vid_out = cv2.VideoWriter(train_cfg.video_output_path,
+    if train_cfg.video:
+        vid_out = cv2.VideoWriter(train_cfg.video,
                                   cv2.VideoWriter_fourcc(*'JPEG'),
+                                  #cv2.VideoWriter_fourcc(*'X264'),
                                   stream.rate,
                                   (3 * int(train_cfg.image_width / 2),
                                    int(train_cfg.image_height / 2)))
@@ -422,6 +431,7 @@ def train(cfg):
         elif curr_frame % train_cfg.inference_stride == 0:
             start = time.time()
             model = models[curr_model_idx]
+            optimizer = optimizers[curr_model_idx]
             with torch.no_grad():
                 logits, probs, entropy, probs_max, preds = \
                         inference(model if not train_cfg.ema else model_ema, in_images)

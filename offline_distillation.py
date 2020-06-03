@@ -37,7 +37,7 @@ def train(cfg):
     log.info(f'Number of class {num_classes}')
 
     dataset = lvs_dataset.LVSDataset(cfg.dataset.data_dir, cfg.dataset.sequence,
-                                     '000',
+                                     str(cfg.dataset.sequence_id).zfill(3),
                                      start_frame=0,
                                      max_frames=0,
                                      stride=cfg.online_train.training_stride)
