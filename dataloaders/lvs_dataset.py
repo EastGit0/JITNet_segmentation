@@ -178,7 +178,7 @@ class LVSDataset(Dataset):
         return (self.end_frame - self.start_frame) // self.stride
 
     def __getitem__(self, index):
-        frame_id = index * self.stride
+        frame_id = self.start_frame + index * self.stride
         with h5py.File(self.data_path, 'r') as f:
             frame = f['frames'][frame_id]
             label = f['labels'][frame_id]

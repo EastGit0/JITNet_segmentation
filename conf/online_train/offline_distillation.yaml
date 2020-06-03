@@ -17,6 +17,5 @@ online_train:
   fg_weight: 10.0
   bg_weight: 1.0
   training_stride: 8
-  max_frames: 100000
   batch_size: 32
   epoch: 30

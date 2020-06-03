@@ -36,11 +36,14 @@ def train(cfg):
     num_classes = len(class_groups) + 1
     log.info(f'Number of class {num_classes}')
 
-    dataset = lvs_dataset.LVSDataset(cfg.dataset.data_dir, cfg.dataset.sequence,
-                                     str(cfg.dataset.sequence_id).zfill(3),
-                                     start_frame=0,
-                                     max_frames=0,
-                                     stride=cfg.online_train.training_stride)
+    dataset = []
+    for s, m in zip(cfg.dataset.start_frame, cfg.dataset.max_frames):
+        dataset.append(lvs_dataset.LVSDataset(cfg.dataset.data_dir, cfg.dataset.sequence,
+                                              str(cfg.dataset.sequence_id).zfill(3),
+                                              start_frame=s,
+                                              max_frames=m,
+                                              stride=cfg.online_train.training_stride))
+    dataset = torch.utils.data.ConcatDataset(dataset)
 
     device = torch.device('cuda')
     model, _ = load_model(cfg.model, num_classes)
