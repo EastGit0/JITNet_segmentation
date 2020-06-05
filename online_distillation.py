@@ -254,8 +254,8 @@ def train(cfg):
                   for m in models]
     cls_weight = None
     if cfg.online_train.cls_weight:
-        assert len(cfg.online_train.cls_weight) == num_classes
-        cls_weight = torch.tensor(cfg.online_train.cls_weight).float()
+        cls_weight = cfg.online_train.cls_weight[:num_classes]
+        cls_weight = torch.tensor(cls_weight).float()
     criterion = torch.nn.CrossEntropyLoss(weight=cls_weight, reduction='none')
     criterion.to(device)
 

@@ -26,6 +26,31 @@ from online_distillation import (load_model,
 
 log = logging.getLogger(__name__)
 
+def get_sampler(perf_stats, num_classes, max_frames):
+    stats_dict = np.load(perf_stats, allow_pickle=True)[0]
+
+    ious = np.zeros([max_frames, num_classes], np.float32)
+    for i, frame in enumerate(sorted(stats_dict.keys())):
+        if i >= max_frames:
+            break
+        frame_stats = stats_dict[frame]
+        for cls in range(num_classes):
+            ious[i, cls] = frame_stats['iou'][cls]
+
+    ious = ious[:, 1:].mean(axis=1)
+    mean_iou = ious.mean()
+    max_iou = ious.max()
+    min_iou = ious.min()
+
+    samples = []
+    for i in range(max_frames):
+        p = np.random.exponential((mean_iou - min_iou) / 2) + min_iou
+        if ious[i] < p:
+            samples.append(i)
+    log.info(f'{len(samples)} samples selected')
+
+    return torch.utils.data.SubsetRandomSampler(samples)
+
 def train(cfg):
     torch.manual_seed(cfg.exp.seed)
     np.random.seed(cfg.exp.seed)
@@ -37,14 +62,11 @@ def train(cfg):
     num_classes = len(class_groups) + 1
     log.info(f'Number of class {num_classes}')
 
-    dataset = []
-    for s, m in zip(cfg.dataset.start_frame, cfg.dataset.max_frames):
-        dataset.append(lvs_dataset.LVSDataset(cfg.dataset.data_dir, cfg.dataset.sequence,
-                                              str(cfg.dataset.sequence_id).zfill(3),
-                                              start_frame=s,
-                                              max_frames=m,
-                                              stride=cfg.online_train.training_stride))
-    dataset = torch.utils.data.ConcatDataset(dataset)
+    dataset = lvs_dataset.LVSDataset(cfg.dataset.data_dir, cfg.dataset.sequence,
+                         str(cfg.dataset.sequence_id).zfill(3),
+                         start_frame=cfg.dataset.start_frame,
+                         max_frames=cfg.dataset.max_frames,
+                         stride=cfg.online_train.training_stride)
 
     device = torch.device('cuda')
     model, _ = load_model(cfg.model, num_classes)
@@ -61,8 +83,9 @@ def train(cfg):
                          len(dataset) // cfg.online_train.batch_size)
     cls_weight = None
     if cfg.online_train.cls_weight:
-        assert len(cfg.online_train.cls_weight) == num_classes
-        cls_weight = torch.tensor(cfg.online_train.cls_weight).float()
+        #assert len(cfg.online_train.cls_weight) == num_classes
+        cls_weight = cfg.online_train.cls_weight[:num_classes]
+        cls_weight = torch.tensor(cls_weight).float()
     criterion = torch.nn.CrossEntropyLoss(weight=cls_weight, reduction='none')
     criterion.to(device)
 
@@ -77,14 +100,19 @@ def train(cfg):
     #    start_epoch = states['epoch'] + 1
 
     train_cfg = cfg.online_train
+    sampler = None
+    if cfg.model.perf_stats:
+        sampler = get_sampler(cfg.model.perf_stats, num_classes, cfg.dataset.max_frames)
     dataloader = torch.utils.data.DataLoader(dataset,
                                              batch_size=train_cfg.batch_size,
-                                             shuffle=True,
-                                             num_workers=4)
+                                             shuffle=sampler is None,
+                                             num_workers=4,
+                                             sampler=sampler)
     writer = SummaryWriter(log_dir='./', flush_secs=30)
 
     for epoch in range(start_epoch, train_cfg.epoch):
-        pbar = tqdm(total=len(dataset) // train_cfg.batch_size + 1)
+        ds_total = len(dataset) if not sampler else len(sampler)
+        pbar = tqdm(total=ds_total // train_cfg.batch_size + 1)
         for batch_idx, (frames, labels, label_weights) in enumerate(dataloader):
             optimizer.zero_grad()
 

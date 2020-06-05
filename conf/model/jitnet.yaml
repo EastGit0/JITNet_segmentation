@@ -1,6 +1,7 @@
 model:
   name: jitnet
   pretrained_ckpt: '/home/cfan/pytorch_segmentation/saved/JITNet/05-20_14-00/checkpoint-epoch30.pth'
+  perf_stats: none
   ignored_vars: ['dec2', 'final']
   jitnet_params:
     bn_momentum: 0.003

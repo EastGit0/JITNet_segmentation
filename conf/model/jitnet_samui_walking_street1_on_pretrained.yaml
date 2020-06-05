@@ -1,6 +1,7 @@
 model:
   name: jitnet
   pretrained_ckpt: '/home/cfan/pytorch_segmentation/results/samui_walking_street1_on_seq0/online_distillation_dataset.sequence=samui_walking_street1,dataset.sequence_id=0,dataset.start_frame=0,online_train.max_frames=15000/final.pth'
+  perf_stats: '/home/cfan/pytorch_segmentation/results/samui_walking_street1_on_seq0/online_distillation_dataset.sequence=samui_walking_street1,dataset.sequence_id=0,dataset.start_frame=0,online_train.max_frames=15000/stats.npy'
   ignored_vars: []
   jitnet_params:
     bn_momentum: 0.003

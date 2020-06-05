@@ -1,0 +1,10 @@
+model:
+  name: jitnet
+  pretrained_ckpt: '/home/cfan/pytorch_segmentation/results/soccer1_on_seq0/online_distillation_dataset.sequence=soccer1,dataset.sequence_id=0,dataset.start_frame=0,online_train.max_frames=15000/final.pth'
+  perf_stats: '/home/cfan/pytorch_segmentation/results/soccer1_on_seq0/online_distillation_dataset.sequence=soccer1,dataset.sequence_id=0,dataset.start_frame=0,online_train.max_frames=15000/stats.npy'
+  ignored_vars: []
+  jitnet_params:
+    bn_momentum: 0.003
+    bn_eps: 1e-5
+    bn_track_running_stats: False
+    decoder_channels: [128, 64, 32, 32, 32]

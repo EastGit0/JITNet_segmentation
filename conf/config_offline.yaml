@@ -25,3 +25,4 @@ hydra:
                   - dataset.video_path
                   - dataset.label_path
                   - model.pretrained_ckpt
+                  - model.perf_stats
