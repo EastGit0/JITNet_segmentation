@@ -252,7 +252,11 @@ def train(cfg):
                                       m,
                                       ckpt_states if cfg.online_train.resume_online else None)
                   for m in models]
-    criterion = torch.nn.CrossEntropyLoss(reduction='none')
+    cls_weight = None
+    if cfg.online_train.cls_weight:
+        assert len(cfg.online_train.cls_weight) == num_classes
+        cls_weight = torch.tensor(cfg.online_train.cls_weight).float()
+    criterion = torch.nn.CrossEntropyLoss(weight=cls_weight, reduction='none')
     criterion.to(device)
 
     if cfg.online_train.ema:
@@ -366,13 +370,17 @@ def train(cfg):
                 logits, probs, entropy, probs_max, preds = \
                     inference(model, in_images)
                 tp, fp, fn, cls_scores = calculate_class_iou(preds, labels_vals, num_classes)
-                loss = criterion(logits, labels_vals)  # [B, H, W]
+                logpt = criterion(logits, labels_vals)  # [B, H, W]
 
                 # Weight foreground and background loss
-                loss_weights = torch.ones_like(label_weights_vals) * train_cfg.fg_weight
+                fg_weights = torch.ones_like(label_weights_vals) * train_cfg.fg_weight
                 bg_mask = label_weights_vals == 0
-                loss_weights.masked_fill_(bg_mask, train_cfg.bg_weight)
-                loss = (loss * loss_weights).mean()
+                fg_weights.masked_fill_(bg_mask, train_cfg.bg_weight)
+                if train_cfg.focal_gamma > 0:
+                    pt = torch.exp(-logpt)
+                    loss = (((1. - pt) ** train_cfg.focal_gamma) * logpt * fg_weights).mean()
+                else:
+                    loss = (logpt * fg_weights).mean()
 
                 loss.backward()
                 optimizer.step()

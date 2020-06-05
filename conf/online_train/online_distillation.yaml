@@ -7,6 +7,7 @@ online_train:
     nesterov: True
   fg_weight: 10.0
   bg_weight: 1.0
+  focal_gamma: 0.0
   training_strides: [8, 16, 32, 64]
   inference_stride: 1
   accuracy_threshold: 0.8
@@ -33,3 +34,4 @@ online_train:
   model_perf_win: 64
   freeze_enc: false
   freeze_dec: false
+  cls_weight: [1,1,1,1]

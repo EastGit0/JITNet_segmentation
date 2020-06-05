@@ -18,6 +18,7 @@ from models import JITNet
 from dataloaders.maskrcnn_stream import (batch_segmentation_masks,
                                          visualize_masks,
                                          MaskRCNNSequenceStream)
+from utils.lr_scheduler import Poly
 import dataloaders.lvs_dataset as lvs_dataset
 from online_distillation import (load_model,
                                  configure_optimizer,
@@ -51,11 +52,18 @@ def train(cfg):
     model.to(device)
     optimizer = configure_optimizer(cfg.online_train.optimizer, model)
     scheduler = None
-    if cfg.online_train.scheduler is not None:
+    if cfg.online_train.scheduler.name == 'multi_step':
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                          cfg.online_train.scheduler.milestones,
                                                          cfg.online_train.scheduler.gamma)
-    criterion = torch.nn.CrossEntropyLoss(reduction='none')
+    elif cfg.online_train.scheduler.name == 'poly':
+        scheduler = Poly(optimizer, cfg.online_train.epoch,
+                         len(dataset) // cfg.online_train.batch_size)
+    cls_weight = None
+    if cfg.online_train.cls_weight:
+        assert len(cfg.online_train.cls_weight) == num_classes
+        cls_weight = torch.tensor(cfg.online_train.cls_weight).float()
+    criterion = torch.nn.CrossEntropyLoss(weight=cls_weight, reduction='none')
     criterion.to(device)
 
     start_epoch = 0
@@ -85,11 +93,15 @@ def train(cfg):
             label_weights = label_weights.to(device)
 
             logits = model(frames)
-            loss = criterion(logits, labels)
-            loss_weights = torch.ones_like(label_weights) * train_cfg.fg_weight
+            logpt = criterion(logits, labels)
+            fg_weights = torch.ones_like(label_weights) * train_cfg.fg_weight
             bg_mask = label_weights == 0
-            loss_weights.masked_fill_(bg_mask, train_cfg.bg_weight)
-            loss = (loss * loss_weights).mean()
+            fg_weights.masked_fill_(bg_mask, train_cfg.bg_weight)
+            if train_cfg.focal_gamma > 0:
+                pt = torch.exp(-logpt)
+                loss = (((1. - pt) ** train_cfg.focal_gamma) * logpt * fg_weights).mean()
+            else:
+                loss = (logpt * fg_weights).mean()
 
             loss.backward()
             optimizer.step()
