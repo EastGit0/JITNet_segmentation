@@ -301,12 +301,13 @@ def train(cfg):
             m.eval()
 
     # Online training
+    replay_buffer = {}
     for curr_frame, (frame, boxes, classes, scores, masks, num_objects, frame_id) in enumerate(stream):
         if curr_frame > train_cfg.max_frames:
             break
 
         # Video frame and maskrcnn outputs
-        frame = frame.astype(np.float) / 255.
+        frame = frame.astype(np.float32) / 255.
         frame = (frame - np.array(train_cfg.image_mean)) / np.array(train_cfg.image_std)
         frame = np.expand_dims(frame, axis=0)
         boxes = np.expand_dims(boxes, axis=0)
@@ -325,22 +326,24 @@ def train(cfg):
                                      num_objects, True,
                                      class_groups,
                                      scale_boxes=train_cfg.scale_boxes)
-        labels_vals = labels_vals.astype(np.int32)
-        label_weights_vals = label_weights_vals.astype(np.int32)
+
+        frame = frame.transpose(0, 3, 1, 2).astype(np.float32)  # [1, H, W, C]
+        labels_vals = labels_vals.astype(np.int64)  # [1, H, W]
+        label_weights_vals = label_weights_vals.astype(np.float32)  # [1, H, W]
 
         # Make a batch of size 1
-        frame_list = [frame]
-        labels_list = [labels_vals]
-        label_weights_list = [label_weights_vals]
-        in_images = torch.tensor(np.concatenate(frame_list, axis=0)).to(device)
-        in_images = in_images.permute(0, 3, 1, 2).float()  # [B, C, H, W]
-        labels_vals = torch.tensor(
-            np.concatenate(labels_list, axis=0)).to(device).long()
-        label_weights_vals = torch.tensor(
-            np.concatenate(label_weights_list, axis=0)).to(device).float()
+        frame = torch.tensor(frame)
+        labels_vals = torch.tensor(labels_vals)
+        label_weights_vals = torch.tensor(label_weights_vals)
 
         curr_updates = 0
         if curr_frame % train_stride == 0 and train_cfg.online_train:
+            replay_buffer[curr_frame] = {
+                'frame': frame,
+                'label': labels_vals,
+                'label_weight': label_weights_vals
+            }
+
             num_teacher_samples += 1
             start = time.time()
 
@@ -364,17 +367,37 @@ def train(cfg):
 
             model = models[curr_model_idx]
             optimizer = optimizers[curr_model_idx]
-            while curr_updates < train_cfg.max_updates:
+            while curr_updates < train_cfg.max_updates // train_cfg.replay_samples:
                 optimizer.zero_grad()
 
+                # Random sample from replay buffer
+                if train_cfg.replay_samples > 1 and len(replay_buffer) > train_cfg.replay_samples - 1:
+                    sample_idx = np.random.choice(list(replay_buffer.keys()),
+                                                  (train_cfg.replay_samples - 1,),
+                                                  replace=False)
+                    frame_batch = [frame] + [replay_buffer[s]['frame'] for s in sample_idx]
+                    label_batch = [labels_vals] + [replay_buffer[s]['label'] for s in sample_idx]
+                    label_weight_batch = [label_weights_vals] + [replay_buffer[s]['label_weight'] for s in sample_idx]
+                    frame_batch = torch.cat(frame_batch, dim=0)
+                    label_batch = torch.cat(label_batch, dim=0)
+                    label_weight_batch = torch.cat(label_weight_batch, dim=0)
+                else:
+                    frame_batch = frame
+                    label_batch = labels_vals
+                    label_weight_batch = label_weights_vals
+
+                frame_batch = frame_batch.to(device)
+                label_batch = label_batch.to(device)
+                label_weight_batch = label_weight_batch.to(device)
+
                 logits, probs, entropy, probs_max, preds = \
-                    inference(model, in_images)
-                tp, fp, fn, cls_scores = calculate_class_iou(preds, labels_vals, num_classes)
-                logpt = criterion(logits, labels_vals)  # [B, H, W]
+                    inference(model, frame_batch)
+                tp, fp, fn, cls_scores = calculate_class_iou(preds[:1], label_batch[:1], num_classes)
+                logpt = criterion(logits, label_batch)  # [B, H, W]
 
                 # Weight foreground and background loss
-                fg_weights = torch.ones_like(label_weights_vals) * train_cfg.fg_weight
-                bg_mask = label_weights_vals == 0
+                fg_weights = torch.ones_like(label_weight_batch) * train_cfg.fg_weight
+                bg_mask = label_weight_batch == 0
                 fg_weights.masked_fill_(bg_mask, train_cfg.bg_weight)
                 if train_cfg.focal_gamma > 0:
                     pt = torch.exp(-logpt)
@@ -441,6 +464,9 @@ def train(cfg):
             model = models[curr_model_idx]
             optimizer = optimizers[curr_model_idx]
             with torch.no_grad():
+                in_images = frame.to(device)
+                labels_vals = labels_vals.to(device)
+
                 logits, probs, entropy, probs_max, preds = \
                         inference(model if not train_cfg.ema else model_ema, in_images)
                 tp, fp, fn, cls_scores = calculate_class_iou(preds,
