@@ -109,13 +109,14 @@ class JITNet(BaseModel):
         self._initialize_weights()
         #if freeze_bn: self.freeze_bn(
 
-    def forward(self, x, labels=None, return_output=False):
+    def forward(self, x, labels=None, return_output=False, return_intermediate=False):
         x = self.enc1(x)
         x = self.enc2(x)
         down_x = []
         for b in self.enc_blocks:
             x = b(x)
             down_x.append(x)
+        intermediate = down_x[-1] if return_intermediate else None
         for i, b in enumerate(self.dec_blocks):
             x = b(x)
             if i < len(self.dec_blocks) - 1:
@@ -128,7 +129,7 @@ class JITNet(BaseModel):
 
         output = x
         if not hasattr(self, 'loss'):
-            return output
+            return output, intermediate
 
         loss = self.loss(output, labels)
         seg_metrics = eval_metrics(output, labels, output.shape[1])

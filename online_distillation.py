@@ -109,15 +109,15 @@ def load_video_stream(dataset_cfg):
 
     return stream, class_groups
 
-def inference(model, images):
-    logits = model(images)  # [B, C, H, W]
+def inference(model, images, return_intermediate=False):
+    logits, intermediate = model(images, return_intermediate=return_intermediate)  # [B, C, H, W]
     with torch.no_grad():
         probs = F.softmax(logits, dim=1)
         log_probs = (probs + 1e-9).log()
         entropy = -(probs * log_probs).sum(1).mean()
         probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
 
-    return logits, probs, entropy, probs_max, preds
+    return logits, probs, entropy, probs_max, preds, intermediate
 
 def calculate_class_iou(preds, labels, num_classes):
     with torch.no_grad():
@@ -131,7 +131,9 @@ def calculate_class_iou(preds, labels, num_classes):
 
         return tp, fp, fn, cls_ious
 
-def visualize_result_frame(vid_out, frame, probs, preds, labels, label_weights, num_classes, train_cfg):
+
+def visualize_result_frame(vid_out, dist_map, frame, probs, preds,
+                           labels, label_weights, num_classes, train_cfg):
     # frame: [B, C, H, W]
     # probs, preds, labels, label_weights: [B, H, W]
     vis_preds = visualize_masks(preds, preds.shape[0],
@@ -147,6 +149,10 @@ def visualize_result_frame(vid_out, frame, probs, preds, labels, label_weights, 
     vis_frame = (vis_frame * np.array(train_cfg.image_std) + np.array(train_cfg.image_mean)) * 255.
     vis_frame = vis_frame.astype(np.uint8)
 
+    dist_map = cv2.resize(dist_map[0, 0], vis_frame.shape[:2][::-1],
+                          interpolation=cv2.INTER_NEAREST)[:, :, None]
+    dist_map = np.full(vis_frame.shape, 255) * dist_map / 50.
+    dist_map = dist_map.astype(np.uint8)
     probs_image = np.full(vis_frame.shape, 255) * np.expand_dims(1 - probs[0], axis=2)
     probs_image = probs_image.astype(np.uint8)
 
@@ -157,7 +163,7 @@ def visualize_result_frame(vid_out, frame, probs, preds, labels, label_weights, 
     preds_image = cv2.addWeighted(vis_frame, 0.5, vis_preds, 0.5, 0)
     labels_image = cv2.addWeighted(vis_frame, 0.5, vis_labels, 0.5, 0)
 
-    vis_image = np.concatenate((probs_image, labels_image, preds_image), axis=1)
+    vis_image = np.concatenate((dist_map, labels_image, preds_image), axis=1)
     #vis_image = np.concatenate((weights_image, labels_image, preds_image), axis=1)
 
     vis_image = vis_image[::2, ::2, :]
@@ -285,6 +291,9 @@ def train(cfg):
     per_frame_stats = {}
     class_iou = np.zeros(num_classes, np.float32)
     model_perfs = [[] for _ in models]
+    prev_intermediate = None
+    force_update = False
+    next_update_frame = 0
 
     vid_out = None
     if train_cfg.video:
@@ -316,8 +325,6 @@ def train(cfg):
         masks = np.expand_dims(masks, axis=0)
         num_objects = np.expand_dims(num_objects, axis=0)
 
-        train_stride = training_strides[curr_stride_idx]
-
         # Convert maskrcnn outputs to dense labels
         labels_vals, label_weights_vals = \
             batch_segmentation_masks(1,
@@ -337,7 +344,9 @@ def train(cfg):
         label_weights_vals = torch.tensor(label_weights_vals)
 
         curr_updates = 0
-        if curr_frame % train_stride == 0 and train_cfg.online_train:
+        if (curr_frame == next_update_frame and train_cfg.online_train) or force_update:
+            force_update = False
+
             replay_buffer[curr_frame] = {
                 'frame': frame,
                 'label': labels_vals,
@@ -390,8 +399,9 @@ def train(cfg):
                 label_batch = label_batch.to(device)
                 label_weight_batch = label_weight_batch.to(device)
 
-                logits, probs, entropy, probs_max, preds = \
-                    inference(model, frame_batch)
+                logits, probs, entropy, probs_max, preds, intermediate = \
+                    inference(model, frame_batch, True)
+                prev_intermediate = intermediate
                 tp, fp, fn, cls_scores = calculate_class_iou(preds[:1], label_batch[:1], num_classes)
                 logpt = criterion(logits, label_batch)  # [B, H, W]
 
@@ -449,6 +459,8 @@ def train(cfg):
             else:
                 curr_stride_idx = max(curr_stride_idx - 1, 0)
 
+            next_update_frame = curr_frame + training_strides[curr_stride_idx]
+
             if min_cls_scores[-1] > best_model_acc and eval_model_idx != curr_model_idx:
                 eval_model_idx = curr_model_idx
                 log.info(f'eval model index {eval_model_idx}')
@@ -467,8 +479,8 @@ def train(cfg):
                 in_images = frame.to(device)
                 labels_vals = labels_vals.to(device)
 
-                logits, probs, entropy, probs_max, preds = \
-                        inference(model if not train_cfg.ema else model_ema, in_images)
+                logits, probs, entropy, probs_max, preds, intermediate = \
+                        inference(model if not train_cfg.ema else model_ema, in_images, True)
                 tp, fp, fn, cls_scores = calculate_class_iou(preds,
                                                              labels_vals,
                                                              num_classes)
@@ -488,9 +500,25 @@ def train(cfg):
                          curr_updates,
                          per_frame_stats)
 
+        with torch.no_grad():
+            #intermediate = F.avg_pool2d(intermediate[:1], intermediate.shape[2:]).flatten(start_dim=1)
+            if prev_intermediate is not None:
+                #cos_sim = F.cosine_similarity(F.avg_pool2d(intermediate, 1),
+                #                              F.avg_pool2d(prev_intermediate, 1)).min()
+                dist_map = ((intermediate - prev_intermediate) ** 2).sum(1) ** 0.5
+                dist = dist_map.mean()
+            else:
+                #cos_sim = 1.0
+                dist_map = None
+                dist = 0.0
+
+            if dist > train_cfg.force_update_thresh:
+                force_update = True
+
         if vid_out:
             visualize_result_frame(vid_out,
-                                   in_images.cpu().numpy(),
+                                   None if dist_map is None else dist_map.cpu().numpy(),
+                                   frame.cpu().numpy(),
                                    probs_max.cpu().numpy(),
                                    preds.cpu().numpy(),
                                    labels_vals.cpu().numpy(),
@@ -498,7 +526,8 @@ def train(cfg):
                                    len(class_groups),
                                    train_cfg)
 
-        log.info(f'frame: {curr_frame + start_frame:05d} time: {end - start:.5f}s {training_str} {stride_str}')
+
+        log.info(f'frame: {curr_frame + start_frame:05d} time: {end - start:.5f}s {training_str} {dist:.3f} {stride_str}')
 
     if train_cfg.stats_path:
         np.save(train_cfg.stats_path, [per_frame_stats])

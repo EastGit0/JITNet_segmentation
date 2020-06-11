@@ -9,9 +9,9 @@ CKPT_PATH="/home/cfan/pytorch_segmentation/results/${SEQ}_ckpts/online_distillat
 #1696 3136 3424
 for f in 512 1024 1216 1472 1600 1920 2048 2496 2688 3200 3520 3776 4096 4480 4928
 do
-    CUDA_VISIBLE_DEVICES=1 python online_distillation.py  \
+    CUDA_VISIBLE_DEVICES=3 python online_distillation.py  \
         online_train.max_frames=2500 \
-        exp.id=${SEQ}_ckpts_eval_$f \
+        exp.id=${SEQ}_ckpts_eval2_$f \
         dataset.sequence=$SEQ \
         dataset.start_frame=$f \
         model.pretrained_ckpt=$CKPT_PATH/frame_$f.pth \

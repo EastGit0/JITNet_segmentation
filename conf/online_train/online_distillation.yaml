@@ -36,3 +36,4 @@ online_train:
   freeze_dec: false
   cls_weight: [1,1,1,1]
   replay_samples: 1
+  force_update_thresh: 1.0
