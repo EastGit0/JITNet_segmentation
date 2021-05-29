@@ -118,3 +118,5 @@ def worker_stream():
     #closing all open windows 
     cv2.destroyAllWindows()
 
+if __name__ == '__main__':
+    worker_stream()
