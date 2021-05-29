@@ -95,18 +95,17 @@ def worker_stream():
     s = VideoInputStream(0)
     frame_id = 0
 
+    # Window name in which image is displayed
+    window_name = "Steam"
+
+    cv2.startWindowThread()
+    cv2.namedWindow(window_name)
+
     frame_detections ={}
 
     while True:
         for im in s:
             assert im is not None
-
-            # timers = defaultdict(Timer)
-            # cls_boxes, cls_segms, _ = im_detect_raw_masks(maskRCNN, im, timers=timers)
-
-
-            # Window name in which image is displayed
-            window_name = 'image'
               
             # Using cv2.imshow() method 
             # Displaying the image 
