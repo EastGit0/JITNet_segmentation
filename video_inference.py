@@ -2,36 +2,29 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import argparse
-import distutils.util
-import os
+
 import sys
-import pprint
 from collections import defaultdict
-from six.moves import xrange
 import time
-
-import numpy as np
 import cv2
-
+import argparse
+import scipy
+import os
+import numpy as np
+import json
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
+import torch.nn.functional as F
+from torchvision import transforms
+from scipy import ndimage
+from tqdm import tqdm
+from math import ceil
+from glob import glob
+from PIL import Image
+import dataloaders
+import models
+from utils.helpers import colorize_mask
 
-import _init_paths
-import nn as mynn
-from core.config import cfg, cfg_from_file, cfg_from_list, assert_and_infer_cfg
-from core.test import im_detect_all, im_detect_raw_masks
-from modeling.model_builder import Generalized_RCNN
-import datasets.dummy_datasets as datasets
-import utils.misc as misc_utils
-import utils.net as net_utils
-import utils.vis as vis_utils
-from utils.detectron_weight_helper import load_detectron_weight
-from utils.timer import Timer
-
-sys.path.append(os.path.realpath('./Detectron.pytorch'))
-sys.path.append(os.path.realpath('./utils'))
 from stream import VideoInputStream
 
 # OpenCL may be enabled by default in OpenCV3; disable it because it's not
@@ -39,13 +32,66 @@ from stream import VideoInputStream
 cv2.ocl.setUseOpenCL(False)
 
 
+
+
+
+
 def worker_stream():
     """main function"""
 
 
+    if torch.cuda.is_available():
+        print("Running JITNet on GPU!")
+    else:
+        print("Running JITNet on CPU!")
+
+
+     # Dataset used for training the model
+    # dataset_type = config['train_loader']['type']
+    # assert dataset_type in ['DETECTRON', 'COCO']
+    # scales = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+    # loader = getattr(dataloaders, config['train_loader']['type'])(**config['train_loader']['args'])
+    # to_tensor = transforms.ToTensor()
+    # normalize = transforms.Normalize(loader.MEAN, loader.STD)
+    # num_classes = loader.dataset.num_classes
+    # palette = loader.dataset.palette
+
+    # # Model
+    # model = getattr(models, config['arch']['type'])(num_classes, **config['arch']['args'])
+    # availble_gpus = list(range(torch.cuda.device_count()))
+    # device = torch.device('cuda:0' if len(availble_gpus) > 0 else 'cpu')
+
+    # checkpoint = torch.load(args.model, map_location=device)
+    # #print("Checkpoint: ", checkpoint)
+    # if isinstance(checkpoint, dict) and 'state_dict' in checkpoint.keys():
+    #     checkpoint = checkpoint['state_dict']
+    #     #print("Update state dict: ", checkpoint)
+    # if 'module' in list(checkpoint.keys())[0] and not isinstance(model, torch.nn.DataParallel):
+    #     model = torch.nn.DataParallel(model)
+    #     #print("Update parallel: ", model)
+    # model.load_state_dict(checkpoint, strict=False)
+    # model.to(device)
+    # model.eval()
+
+    # if not os.path.exists('outputs'):
+    #     os.makedirs('outputs')
+
+    # image_files = sorted(glob(os.path.join(args.images, f'*.{args.extension}')))
+    # with torch.no_grad():
+    #     tbar = tqdm(image_files, ncols=100)
+    #     for img_file in tbar:
+    #         image = Image.open(img_file).convert('RGB')
+    #         input = normalize(to_tensor(image)).unsqueeze(0)
+
+    #         prediction = model(input.to(device))
+    #         prediction = prediction[0].squeeze(0).cpu().numpy()
+
+    #         prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
+    #         save_images(image, prediction, args.output, img_file, palette)
 
 
 
+    ## Loop Over Video Stream
     s = VideoInputStream(0)
     frame_id = 0
 
@@ -55,8 +101,7 @@ def worker_stream():
         for im in s:
             assert im is not None
 
-            timers = defaultdict(Timer)
-
+            # timers = defaultdict(Timer)
             # cls_boxes, cls_segms, _ = im_detect_raw_masks(maskRCNN, im, timers=timers)
 
 
