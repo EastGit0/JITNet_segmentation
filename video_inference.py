@@ -111,7 +111,7 @@ def worker_stream():
             # Using cv2.imshow() method 
             # Displaying the image 
             # cv2.imshow(window_name, im)
-            plt.imshow(canvas, interpolation='nearest')
+            plt.imshow(im, interpolation='nearest')
             plt.show()
 
             # frame_detections[frame_id] = [boxes, class_ids, scores, masks]
