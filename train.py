@@ -10,6 +10,7 @@ from utils import losses
 from utils import Logger
 from utils.torchsummary import summary
 from trainer import Trainer
+import gc
 
 def get_instance(module, name, config, *args):
     # GET THE CORRESPONDING CLASS / FCT
@@ -39,6 +40,15 @@ def main(config, resume):
         val_loader=val_loader,
         train_logger=train_logger)
 
+    print("Mem Map:")
+    #torch.cuda.memory_summary(device=None, abbreviated=False)
+    print("Look good?")
+    torch.cuda.empty_cache()
+    print("emptied cache")
+    #del variables
+    #gc.collect()
+    print("garbage collect")
+
     trainer.train()
 
 if __name__=='__main__':
@@ -53,8 +63,8 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     config = json.load(open(args.config))
-    if args.resume:
-        config = torch.load(args.resume)['config']
+    #if args.resume:
+        #config = torch.load(args.resume)['config']
     if args.device:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.device
 

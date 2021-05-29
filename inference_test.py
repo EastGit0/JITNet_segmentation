@@ -15,6 +15,7 @@ from PIL import Image
 import dataloaders
 import models
 from utils.helpers import colorize_mask
+import models.resnet_original as mdl
 
 def pad_image(img, target_size):
     rows_to_pad = max(target_size[0] - img.shape[2], 0)
@@ -23,6 +24,7 @@ def pad_image(img, target_size):
     return padded_img
 
 def sliding_predict(model, image, num_classes, flip=True):
+    print("sliding predict")
     image_size = image.shape
     tile_size = (int(image_size[2]//2.5), int(image_size[3]//2.5))
     overlap = 1/3
@@ -45,6 +47,7 @@ def sliding_predict(model, image, num_classes, flip=True):
             padded_img = pad_image(img, tile_size)
             tile_counter += 1
             padded_prediction = model(padded_img)
+            print(padded_prediction)
             if flip:
                 fliped_img = padded_img.flip(-1)
                 fliped_predictions = model(padded_img.flip(-1))
@@ -58,6 +61,7 @@ def sliding_predict(model, image, num_classes, flip=True):
 
 
 def multi_scale_predict(model, image, scales, num_classes, device, flip=False):
+    print("multiscale")
     input_size = (image.size(2), image.size(3))
     upsample = nn.Upsample(size=input_size, mode='bilinear', align_corners=True)
     total_predictions = np.zeros((num_classes, image.size(2), image.size(3)))
@@ -95,11 +99,9 @@ def main():
     args = parse_arguments()
     config = json.load(open(args.config))
 
-    print("CUDA - ", torch.cuda.is_available())
-
     # Dataset used for training the model
     dataset_type = config['train_loader']['type']
-    assert dataset_type in ['DETECTRON','VOC', 'COCO', 'CityScapes', 'ADE20K']
+    assert dataset_type in ['VOC', 'COCO', 'CityScapes', 'ADE20K']
     if dataset_type == 'CityScapes': 
         scales = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25] 
     else:
@@ -111,19 +113,18 @@ def main():
     palette = loader.dataset.palette
 
     # Model
-    model = getattr(models, config['arch']['type'])(num_classes, **config['arch']['args'])
+    #model = getattr(models, config['arch']['type'])(num_classes, **config['arch']['args'])
+    model = mdl.ResNet(block=mdl.BasicBlock, layers=[2, 2, 2, 2])
     availble_gpus = list(range(torch.cuda.device_count()))
     device = torch.device('cuda:0' if len(availble_gpus) > 0 else 'cpu')
 
     checkpoint = torch.load(args.model, map_location=device)
-    #print("Checkpoint: ", checkpoint)
+    #checkpoint = model.load_state_dict(torch.load(args.model))
     if isinstance(checkpoint, dict) and 'state_dict' in checkpoint.keys():
         checkpoint = checkpoint['state_dict']
-        #print("Update state dict: ", checkpoint)
     if 'module' in list(checkpoint.keys())[0] and not isinstance(model, torch.nn.DataParallel):
         model = torch.nn.DataParallel(model)
-        #print("Update parallel: ", model)
-    model.load_state_dict(checkpoint, strict=False)
+    model.load_state_dict(checkpoint)
     model.to(device)
     model.eval()
 
@@ -142,13 +143,18 @@ def main():
             elif args.mode == 'sliding':
                 prediction = sliding_predict(model, input, num_classes)
             else:
+                print("regular model")
                 prediction = model(input.to(device))
-                #print(prediction[0])
-                #print(prediction[0].shape)
-                #print(prediction[0].type)
-                prediction = prediction[0].squeeze(0).cpu().numpy()
+                print("prediction bf squeeze")
+                print(prediction)
+                prediction = prediction.squeeze(0).cpu().numpy()
             prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
-            save_images(image, prediction, args.output, img_file, palette)
+            print("before prediction")
+            print(prediction)
+            print("img_file: " + img_file)
+            image.save(os.path.join(args.output, img_file[9:]))
+            #save_images(image, prediction, args.output, img_file, palette)
+            exit()
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Inference')

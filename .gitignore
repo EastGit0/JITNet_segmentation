@@ -108,6 +108,7 @@ outputs/
 datasets/
 pretrained/
 trained_models/
+back_up_models/
 
 # editor, os cache directory
 .vscode/

@@ -161,7 +161,8 @@ class BaseTrainer:
         checkpoint = torch.load(resume_path)
 
         # Load last run info, the model params, the optimizer and the loggers
-        self.start_epoch = checkpoint['epoch'] + 1
+        #self.start_epoch = checkpoint['epoch'] + 1
+        self.start_epoch = 0
         self.mnt_best = checkpoint['monitor_best']
         self.not_improved_count = 0
 

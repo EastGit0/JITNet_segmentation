@@ -63,9 +63,14 @@ class Trainer(BaseTrainer):
             #    assert output.size()[2:] == target.size()[1:]
             #    assert output.size()[1] == self.num_classes
             #    loss = self.loss(output, target)
-
+            #print("")
+            #print("debug info")
+            #print(loss)
+            #print(loss.shape)
+            #print(loss.shape[0])
             if isinstance(self.model, torch.nn.DataParallel):
-                num_gpus = loss.shape[0]
+                #num_gpus = loss.shape[0]
+                num_gpus = 1
                 loss = loss.mean()
                 seg_metrics = {k: v.view(num_gpus, -1).float().mean(0).cpu().numpy()
                                for k, v in seg_metrics.items()}
@@ -126,7 +131,8 @@ class Trainer(BaseTrainer):
                 # LOSS
                 loss, output, seg_metrics = self.model(data, target, return_output=True)
                 if isinstance(self.model, torch.nn.DataParallel):
-                    num_gpus = loss.shape[0]
+                    #num_gpus = loss.shape[0]
+                    num_gpus = 1
                     loss = loss.mean()
                     seg_metrics = {k: v.view(num_gpus, -1).float().mean(0).cpu().numpy()
                                    for k, v in seg_metrics.items()}
@@ -138,6 +144,7 @@ class Trainer(BaseTrainer):
                 if len(val_visual) < 15:
                     target_np = target.data.cpu().numpy()
                     output_np = output.data.max(1)[1].cpu().numpy()
+                    print(data[0].data.cpu(), target_np[0], output_np[0])
                     val_visual.append([data[0].data.cpu(), target_np[0], output_np[0]])
 
                 # PRINT INFO
