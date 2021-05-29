@@ -101,6 +101,7 @@ def worker_stream():
 
     # cv2.startWindowThread()
     # cv2.namedWindow(window_name)
+    plt.show()
 
     frame_detections ={}
 
