@@ -24,12 +24,13 @@ from PIL import Image
 import dataloaders
 import models
 from utils.helpers import colorize_mask
+import matplotlib.pyplot as plt
 
 from stream import VideoInputStream
 
 # OpenCL may be enabled by default in OpenCV3; disable it because it's not
 # thread safe and causes unwanted GPU memory allocations.
-cv2.ocl.setUseOpenCL(False)
+# cv2.ocl.setUseOpenCL(False)
 
 
 
@@ -98,8 +99,8 @@ def worker_stream():
     # Window name in which image is displayed
     window_name = "Steam"
 
-    cv2.startWindowThread()
-    cv2.namedWindow(window_name)
+    # cv2.startWindowThread()
+    # cv2.namedWindow(window_name)
 
     frame_detections ={}
 
@@ -109,7 +110,9 @@ def worker_stream():
               
             # Using cv2.imshow() method 
             # Displaying the image 
-            cv2.imshow(window_name, im)
+            # cv2.imshow(window_name, im)
+            plt.imshow(canvas, interpolation='nearest')
+            plt.show()
 
             # frame_detections[frame_id] = [boxes, class_ids, scores, masks]
             frame_id = frame_id + 1
