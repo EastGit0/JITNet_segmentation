@@ -110,6 +110,7 @@ def worker_stream():
             assert im is not None
             if frame_id == 0:
                 window = plt.imshow(im)
+                plt.ion()
             # Using cv2.imshow() method 
             # Displaying the image 
             # cv2.imshow(window_name, im)
