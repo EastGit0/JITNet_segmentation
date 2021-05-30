@@ -122,6 +122,8 @@ class BaseTrainer:
 
             # CHECKING IF THIS IS THE BEST MODEL (ONLY FOR VAL)
             if self.mnt_mode != 'off' and epoch % self.config['trainer']['val_per_epochs'] == 0:
+                print(log)
+                print(self.mnt_best)
                 try:
                     if self.mnt_mode == 'min': self.improved = (log[self.mnt_metric] < self.mnt_best)
                     else: self.improved = (log[self.mnt_metric] > self.mnt_best)
