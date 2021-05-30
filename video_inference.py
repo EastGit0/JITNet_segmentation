@@ -117,6 +117,7 @@ def worker_stream():
             # Displaying the image 
             # cv2.imshow(window_name, im)
             window.set_data(im)
+            plt.pause(0.04)
             # plt.show()
 
             # frame_detections[frame_id] = [boxes, class_ids, scores, masks]
