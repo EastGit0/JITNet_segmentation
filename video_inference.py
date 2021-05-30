@@ -106,13 +106,14 @@ def worker_stream():
     frame_detections ={}
 
     while True:
+        window = plt.imshow()
         for im in s:
             assert im is not None
               
             # Using cv2.imshow() method 
             # Displaying the image 
-            cv2.imshow(window_name, im)
-            # plt.imshow(im, interpolation='none')
+            # cv2.imshow(window_name, im)
+            window.set_data(im)
             # plt.show()
 
             # frame_detections[frame_id] = [boxes, class_ids, scores, masks]
