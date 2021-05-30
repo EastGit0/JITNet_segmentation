@@ -40,14 +40,7 @@ def main(config, resume):
         val_loader=val_loader,
         train_logger=train_logger)
 
-    print("Mem Map:")
-    #torch.cuda.memory_summary(device=None, abbreviated=False)
-    print("Look good?")
     torch.cuda.empty_cache()
-    print("emptied cache")
-    #del variables
-    #gc.collect()
-    print("garbage collect")
 
     trainer.train()
 

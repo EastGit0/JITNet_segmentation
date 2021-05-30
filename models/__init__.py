@@ -10,3 +10,4 @@ from .upernet import UperNet
 from .pspnet import PSPNet
 from .pspnet import PSPDenseNet
 from .jitnet import JITNet
+from .jitnetlight import JITNetLight
