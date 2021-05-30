@@ -106,10 +106,10 @@ def worker_stream():
     frame_detections ={}
 
     while True:
-        window = plt.imshow(s.__next__)
         for im in s:
             assert im is not None
-              
+            if frame_id == 0:
+                window = plt.imshow(im)
             # Using cv2.imshow() method 
             # Displaying the image 
             # cv2.imshow(window_name, im)
