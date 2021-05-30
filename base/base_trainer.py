@@ -176,11 +176,11 @@ class BaseTrainer:
             self.logger.warning({'Warning! Current model is not the same as the one in the checkpoint'})
         self.model.load_state_dict(checkpoint['state_dict'], strict=False)
 
-        if checkpoint['config']['optimizer']['type'] != self.config['optimizer']['type']:
-            self.logger.warning({'Warning! Current optimizer is not the same as the one in the checkpoint'})
-        self.optimizer.load_state_dict(checkpoint['optimizer'])
-        print(checkpoint['optimizer'])
-        print(self.config['optimizer'])
+        # if checkpoint['config']['optimizer']['type'] != self.config['optimizer']['type']:
+        #     self.logger.warning({'Warning! Current optimizer is not the same as the one in the checkpoint'})
+        # self.optimizer.load_state_dict(checkpoint['optimizer'])
+        # print(checkpoint['optimizer'])
+        # print(self.config['optimizer'])
 
         
 
