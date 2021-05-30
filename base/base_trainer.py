@@ -160,7 +160,7 @@ class BaseTrainer:
 
     def _resume_checkpoint(self, resume_path):
         self.logger.info(f'Loading checkpoint : {resume_path}')
-        checkpoint = torch.load(resume_path)
+        checkpoint = torch.load(resume_path, map_location=self.device)
 
         # Load last run info, the model params, the optimizer and the loggers
         #self.start_epoch = checkpoint['epoch'] + 1
