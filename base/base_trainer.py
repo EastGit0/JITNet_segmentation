@@ -36,7 +36,9 @@ class BaseTrainer:
             self.model = DataParallelWithCallback(self.model, device_ids=availble_gpus)
         else:
             self.model = torch.nn.DataParallel(self.model, device_ids=availble_gpus)
-        self.model.cuda()
+        
+        if availble_gpus:
+            self.model.cuda()
 
         # CONFIGS
         cfg_trainer = self.config['trainer']
