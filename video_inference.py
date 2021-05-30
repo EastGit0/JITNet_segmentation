@@ -25,7 +25,7 @@ import dataloaders
 import models
 from utils.helpers import colorize_mask
 import matplotlib.pyplot as plt
-from utils import palette
+# from utils import palette
 from models.jitnet import JITNet
 
 from stream import VideoInputStream
@@ -58,7 +58,7 @@ def worker_stream():
     to_tensor = transforms.ToTensor()
     normalize = transforms.Normalize([0.43931922, 0.41310471, 0.37480941], [0.24272706, 0.23649098, 0.23429529])
     num_classes = 81
-    palette = palette.COCO_palette
+    # palette = palette.COCO_palette
 
 
     # Model
