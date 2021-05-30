@@ -85,8 +85,8 @@ class BaseTrainer:
 
         if resume: self._resume_checkpoint(resume)
 
-        print("My device is ",self.device)
-        if self.device == 'cpu':
+        print(self.device)
+        if self.device == "cpu":
             torch.set_flush_denormal(True)
             print("Flush Denormals Enabled")
 
