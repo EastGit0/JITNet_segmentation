@@ -122,9 +122,9 @@ def worker_stream():
             prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
 
 
-            print(prediction)
-            print(prediction.dtype)
-            print(prediction.shape)
+            # print(prediction)
+            # print(prediction.dtype)
+            # print(prediction.shape)
 
 
             # if frame_id == 0:
@@ -132,7 +132,7 @@ def worker_stream():
             #     plt.ion()
             # Using cv2.imshow() method 
             # Displaying the image 
-            cv2.imshow(window_name, prediction)
+            cv2.imshow(window_name, prediction.astype(np.uint8))
             cv2.waitKey(20)
 
 
