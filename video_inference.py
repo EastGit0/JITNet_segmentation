@@ -133,7 +133,7 @@ def worker_stream():
             # Using cv2.imshow() method 
             # Displaying the image 
             cv2.imshow(window_name, prediction.astype(np.uint8))
-            # cv2.waitKey(20)
+            cv2.waitKey(5)
 
 
             # window.set_data(im)
