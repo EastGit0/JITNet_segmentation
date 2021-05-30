@@ -85,6 +85,10 @@ class BaseTrainer:
 
         if resume: self._resume_checkpoint(resume)
 
+        if self.device == 'cpu':
+            torch.set_flush_denormal(True)
+            print("Flush Denormals Enabled")
+
     def _get_available_devices(self, n_gpu):
         sys_gpu = torch.cuda.device_count()
         if sys_gpu == 0:
