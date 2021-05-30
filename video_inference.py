@@ -25,6 +25,8 @@ import dataloaders
 import models
 from utils.helpers import colorize_mask
 import matplotlib.pyplot as plt
+from utils import palette
+from models.jitnet import JITNet
 
 from stream import VideoInputStream
 
@@ -48,18 +50,21 @@ def worker_stream():
 
 
     # Dataset used for training the model
-    config = json.load(open("config_detectron.json"))
-    dataset_type = config['train_loader']['type']
+    # config = json.load(open("config_detectron.json"))
+    # dataset_type = config['train_loader']['type']
     assert dataset_type in ['DETECTRON', 'COCO']
     scales = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
-    loader = getattr(dataloaders, config['train_loader']['type'])(**config['train_loader']['args'])
+    # loader = getattr(dataloaders, config['train_loader']['type'])(**config['train_loader']['args'])
     to_tensor = transforms.ToTensor()
-    normalize = transforms.Normalize(loader.MEAN, loader.STD)
-    num_classes = loader.dataset.num_classes
-    palette = loader.dataset.palette
+    normalize = transforms.Normalize([0.43931922, 0.41310471, 0.37480941], [0.24272706, 0.23649098, 0.23429529])
+    num_classes = 81
+    palette = palette.COCO_palette
+
 
     # Model
-    model = getattr(models, config['arch']['type'])(num_classes, **config['arch']['args'])
+    # model = getattr(models, config['arch']['type'])(num_classes, **config['arch']['args'])
+
+    model = JITNet(num_classes)
     availble_gpus = list(range(torch.cuda.device_count()))
     device = torch.device('cuda:0' if len(availble_gpus) > 0 else 'cpu')
 
@@ -75,18 +80,18 @@ def worker_stream():
     model.to(device)
     model.eval()
 
-    image_files = sorted(glob(os.path.join(args.images, f'*.{args.extension}')))
-    with torch.no_grad():
-        tbar = tqdm(image_files, ncols=100)
-        for img_file in tbar:
-            image = Image.open(img_file).convert('RGB')
-            input = normalize(to_tensor(image)).unsqueeze(0)
+    # image_files = sorted(glob(os.path.join(args.images, f'*.{args.extension}')))
+    # with torch.no_grad():
+    #     tbar = tqdm(image_files, ncols=100)
+    #     for img_file in tbar:
+    #         image = Image.open(img_file).convert('RGB')
+    #         input = normalize(to_tensor(image)).unsqueeze(0)
 
-            prediction = model(input.to(device))
-            prediction = prediction[0].squeeze(0).cpu().numpy()
+    #         prediction = model(input.to(device))
+    #         prediction = prediction[0].squeeze(0).cpu().numpy()
 
-            prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
-            save_images(image, prediction, args.output, img_file, palette)
+    #         prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
+    #         save_images(image, prediction, args.output, img_file, palette)
 
 
 
