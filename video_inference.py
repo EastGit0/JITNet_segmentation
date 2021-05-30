@@ -96,13 +96,13 @@ def worker_stream():
     s = VideoInputStream(0)
     frame_id = 0
 
-    ax1 = plt.subplot(1,1,1)
+    # ax1 = plt.subplot(1,1,1)
 
     # Window name in which image is displayed
     window_name = "Steam"
 
-    # cv2.startWindowThread()
-    # cv2.namedWindow(window_name)
+    cv2.startWindowThread()
+    cv2.namedWindow(window_name)
     # plt.show()
 
     frame_detections ={}
@@ -110,14 +110,17 @@ def worker_stream():
     while True:
         for im in s:
             assert im is not None
-            if frame_id == 0:
-                window = ax1.imshow(im)
-                plt.ion()
+            # if frame_id == 0:
+            #     window = ax1.imshow(im)
+            #     plt.ion()
             # Using cv2.imshow() method 
             # Displaying the image 
-            # cv2.imshow(window_name, im)
-            window.set_data(im)
-            plt.pause(0.04)
+            cv2.imshow(window_name, im)
+            cv2.waitKey(20)
+
+
+            # window.set_data(im)
+            # plt.pause(0.04)
             # plt.show()
 
             # frame_detections[frame_id] = [boxes, class_ids, scores, masks]
