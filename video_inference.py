@@ -52,7 +52,7 @@ def worker_stream():
     # Dataset used for training the model
     # config = json.load(open("config_detectron.json"))
     # dataset_type = config['train_loader']['type']
-    assert dataset_type in ['DETECTRON', 'COCO']
+    # assert dastaset_type in ['DETECTRON', 'COCO']
     scales = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
     # loader = getattr(dataloaders, config['train_loader']['type'])(**config['train_loader']['args'])
     to_tensor = transforms.ToTensor()
