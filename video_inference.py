@@ -99,14 +99,14 @@ def worker_stream():
     # Window name in which image is displayed
     window_name = "Steam"
 
-    cv2.startWindowThread()
-    cv2.namedWindow(window_name)
+    # cv2.startWindowThread()
+    # cv2.namedWindow(window_name)
     # plt.show()
 
     frame_detections ={}
 
     while True:
-        window = plt.imshow()
+        window = plt.imshow(s.next)
         for im in s:
             assert im is not None
               
