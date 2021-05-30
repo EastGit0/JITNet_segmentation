@@ -123,7 +123,7 @@ def worker_stream():
 
 
             print(prediction)
-            # print(prediction.type)
+            print(prediction.dtype)
             print(prediction.shape)
 
 
