@@ -120,8 +120,11 @@ def worker_stream():
             # frame_detections[frame_id] = [boxes, class_ids, scores, masks]
             frame_id = frame_id + 1
 
+    plt.ioff()
+    plt.show()
+
     #closing all open windows 
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     worker_stream()
