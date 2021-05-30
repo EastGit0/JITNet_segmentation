@@ -114,7 +114,8 @@ def worker_stream():
         for im in s:
             assert im is not None
 
-            input = normalize(to_tensor(im.convert('RGB'))).unsqueeze(0)
+            # input = normalize(to_tensor(im.convert('RGB'))).unsqueeze(0)
+            input = normalize(to_tensor(im)).unsqueeze(0)
 
             prediction = model(input.to(device))
             prediction = prediction[0].squeeze(0).cpu().numpy()
