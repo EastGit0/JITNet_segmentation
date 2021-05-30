@@ -96,6 +96,8 @@ def worker_stream():
     s = VideoInputStream(0)
     frame_id = 0
 
+    ax1 = plt.subplot(1,1,1)
+
     # Window name in which image is displayed
     window_name = "Steam"
 
@@ -109,7 +111,7 @@ def worker_stream():
         for im in s:
             assert im is not None
             if frame_id == 0:
-                window = plt.imshow(im)
+                window = ax1.imshow(im)
                 plt.ion()
             # Using cv2.imshow() method 
             # Displaying the image 
