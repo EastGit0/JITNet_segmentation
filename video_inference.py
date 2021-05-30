@@ -118,8 +118,8 @@ def worker_stream():
             input = normalize(to_tensor(im)).unsqueeze(0)
 
             prediction = model(input.to(device))
-            prediction = prediction[0].squeeze(0).cpu().numpy()
-            prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().detach().numpy()
+            prediction = prediction[0].squeeze(0).cpu().detach().numpy()
+            prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
 
             # if frame_id == 0:
             #     window = ax1.imshow(im)
