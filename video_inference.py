@@ -126,7 +126,7 @@ def worker_stream():
             #     plt.ion()
             # Using cv2.imshow() method 
             # Displaying the image 
-            cv2.imshow(prediction, im)
+            cv2.imshow(window_name, prediction)
             cv2.waitKey(20)
 
 
