@@ -121,6 +121,12 @@ def worker_stream():
             prediction = prediction[0].squeeze(0).cpu().detach().numpy()
             prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
 
+
+            print(prediction)
+            print(prediction.type)
+            print(prediction.shape)
+
+
             # if frame_id == 0:
             #     window = ax1.imshow(im)
             #     plt.ion()
