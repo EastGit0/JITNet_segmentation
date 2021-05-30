@@ -106,7 +106,7 @@ def worker_stream():
     frame_detections ={}
 
     while True:
-        window = plt.imshow(s.next)
+        window = plt.imshow(s.__next__)
         for im in s:
             assert im is not None
               
