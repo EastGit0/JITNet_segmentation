@@ -27,6 +27,10 @@ from utils.helpers import colorize_mask
 import matplotlib.pyplot as plt
 # from utils import palette
 from models.jitnet import JITNet
+from models.jitnetlight import JITNetLight
+
+from paramiko import SSHClient
+from scp import SCPClient
 
 from stream import VideoInputStream
 
@@ -34,120 +38,154 @@ from stream import VideoInputStream
 # thread safe and causes unwanted GPU memory allocations.
 # cv2.ocl.setUseOpenCL(False)
 
+class Student():
+    def __init__(self, model_path, model_JITNet):
+        
+        if torch.cuda.is_available():
+            print("Running JITNet on GPU!")
+        else:
+            print("Running JITNet on CPU!")
+        
+        self.to_tensor = transforms.ToTensor()
+        self.normalize = transforms.Normalize([0.43931922, 0.41310471, 0.37480941], [0.24272706, 0.23649098, 0.23429529])
+
+        num_classes = 81
+        if model_JITNet:
+          print("Using JITNet Model")
+          self.model = JITNet(num_classes)
+        else:
+          print("Using JITNetLight Model")
+          self.model = JITNetLight(num_classes)
+
+        self.availble_gpus = list(range(torch.cuda.device_count()))
+        self.device = torch.device('cuda:0' if len(self.availble_gpus) > 0 else 'cpu')
+
+        self.load_weights(model_path)
+
+        # Set up SSH
+        self.ssh_frame = SSHClient()
+        self.ssh_frame.load_system_host_keys()
+        self.ssh_frame.connect('35.233.229.168:/home/cs348k/data/student_files/frames/')
+
+        self.ssh_mask = SSHClient()
+        self.ssh_mask.load_system_host_keys()
+        self.ssh_mask.connect('35.233.229.168:/home/cs348k/data/student_files/masks/')
+
+        self.frame_id = 0
+        self.window_name = "Steam"
+
+        self.next_weight_id = 1
+        self.next_weight_path = "./teacher_weights/weights_{}".format(str(self.next_weight_id))
+
+    def load_weights(self, path):
+        print("---------- LOADING WEIGHTS: {} ---------".format(path))
+        self.checkpoint = torch.load(path, map_location=self.device)
+
+        if isinstance(self.checkpoint, dict) and 'state_dict' in self.checkpoint.keys():
+            self.checkpoint = self.checkpoint['state_dict']
+        if 'module' in list(self.checkpoint.keys())[0] and not isinstance(self.model, torch.nn.DataParallel):
+            self.model = torch.nn.DataParallel(self.model)
+
+        self.model.load_state_dict(self.checkpoint, strict=False)
+        self.model.to(self.device)
+        self.model.eval()
 
 
+    def turn_in_homework(self, image, mask):
+
+        # Save Frame and Mask
+
+        # Send Frame and Mask
+        with SCPClient(self.ssh_frame.get_transport()) as scp:
+            scp.put("{}.jpg".format(self.frame_id))
+
+        with SCPClient(self.ssh_mask.get_transport()) as scp:
+            scp.put("{}.png".format(self.frame_id))
 
 
+    def video_stream(self):
+        """main function"""
 
-def worker_stream():
-    """main function"""
+        ## Loop Over Video Stream
+        s = VideoInputStream(0)
 
+        # ax1 = plt.subplot(1,1,1)
+        # plt.show()
 
-    if torch.cuda.is_available():
-        print("Running JITNet on GPU!")
-    else:
-        print("Running JITNet on CPU!")
+        # Window name in which image is displayed
 
+        cv2.startWindowThread()
+        cv2.namedWindow(self.window_name)
 
-    # Dataset used for training the model
-    # config = json.load(open("config_detectron.json"))
-    # dataset_type = config['train_loader']['type']
-    # assert dastaset_type in ['DETECTRON', 'COCO']
-    scales = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
-    # loader = getattr(dataloaders, config['train_loader']['type'])(**config['train_loader']['args'])
-    to_tensor = transforms.ToTensor()
-    normalize = transforms.Normalize([0.43931922, 0.41310471, 0.37480941], [0.24272706, 0.23649098, 0.23429529])
-    num_classes = 81
-    # palette = palette.COCO_palette
+        while True:
+            for im in s:
+                assert im is not None
+                self.frame_id = self.frame_id + 1
 
+                ##### Make Prediction #####
+                # input = normalize(to_tensor(im.convert('RGB'))).unsqueeze(0)
+                input = self.normalize(self.to_tensor(im)).unsqueeze(0)
+                prediction = self.model(input.to(self.device))
+                prediction = prediction[0].squeeze(0).cpu().detach().numpy()
+                prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
 
-    # Model
-    # model = getattr(models, config['arch']['type'])(num_classes, **config['arch']['args'])
+                ##### Send Frame and Mask #####
+                self.turn_in_homework(im, prediction)
 
-    model = JITNet(num_classes)
-    availble_gpus = list(range(torch.cuda.device_count()))
-    device = torch.device('cuda:0' if len(availble_gpus) > 0 else 'cpu')
+                ##### Display new Frame #####
+                w, h = im.size
+                output_im = Image.new('RGB', (w*2, h))
+                output_im.paste(im, (0,0))
+                output_im.paste(prediction, (w,0))
+                cv2.imshow(self.window_name, output_im) #prediction.astype(np.uint8)
+                
 
-    checkpoint = torch.load("./saved/pretrained_models/checkpoint-epoch9.pth", map_location=device)
-    #print("Checkpoint: ", checkpoint)
-    if isinstance(checkpoint, dict) and 'state_dict' in checkpoint.keys():
-        checkpoint = checkpoint['state_dict']
-        #print("Update state dict: ", checkpoint)
-    if 'module' in list(checkpoint.keys())[0] and not isinstance(model, torch.nn.DataParallel):
-        model = torch.nn.DataParallel(model)
-        #print("Update parallel: ", model)
-    model.load_state_dict(checkpoint, strict=False)
-    model.to(device)
-    model.eval()
-
-    # image_files = sorted(glob(os.path.join(args.images, f'*.{args.extension}')))
-    # with torch.no_grad():
-    #     tbar = tqdm(image_files, ncols=100)
-    #     for img_file in tbar:
-    #         image = Image.open(img_file).convert('RGB')
-    #         input = normalize(to_tensor(image)).unsqueeze(0)
-
-    #         prediction = model(input.to(device))
-    #         prediction = prediction[0].squeeze(0).cpu().numpy()
-
-    #         prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
-    #         save_images(image, prediction, args.output, img_file, palette)
+                ##### Check for New Weights #####
+                if os.path.exists(self.next_weight_path):
+                  self.load_weights(self.next_weight_path)
+                  self.next_weight_id = self.next_weight_id + 1
+                  self.next_weight_path = "./teacher_weights/weights_{}".format(str(self.next_weight_id))
+                else:
+                  cv2.waitKey(100)
 
 
-
-    ## Loop Over Video Stream
-    s = VideoInputStream(0)
-    frame_id = 0
-
-    # ax1 = plt.subplot(1,1,1)
-
-    # Window name in which image is displayed
-    window_name = "Steam"
-
-    cv2.startWindowThread()
-    cv2.namedWindow(window_name)
-    # plt.show()
-
-    frame_detections ={}
-
-    while True:
-        for im in s:
-            assert im is not None
-
-            # input = normalize(to_tensor(im.convert('RGB'))).unsqueeze(0)
-            input = normalize(to_tensor(im)).unsqueeze(0)
-
-            prediction = model(input.to(device))
-            prediction = prediction[0].squeeze(0).cpu().detach().numpy()
-            prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
+                # if frame_id == 0:
+                #     window = ax1.imshow(im)
+                #     plt.ion()
+                # Using cv2.imshow() method 
+                # Displaying the image 
 
 
-            # print(prediction)
-            # print(prediction.dtype)
-            # print(prediction.shape)
+                # window.set_data(im)
+                # plt.pause(0.04)
+                # plt.show()
+
+             
+
+        #### Never Reach Here ####
+        # plt.ioff()
+        # plt.show()
+
+        #closing all open windows 
+        # cv2.destroyAllWindows()
+
+def main(config, resume):
+    # Set Up Student
+    student = Student(model_path=args.model_path, model_JITNet = (not args.not_JITNet))
+
+    torch.cuda.empty_cache()
+
+    student.video_stream()
 
 
-            # if frame_id == 0:
-            #     window = ax1.imshow(im)
-            #     plt.ion()
-            # Using cv2.imshow() method 
-            # Displaying the image 
-            cv2.imshow(window_name, prediction.astype(np.uint8))
-            cv2.waitKey(5)
+if __name__=='__main__':
+    # PARSE THE ARGS
+    parser = argparse.ArgumentParser(description='PyTorch Training')
+    parser.add_argument('-mp', '--model_path', default=None,type=str,
+                        help='Path to the starting Model')
+    parser.add_argument('--not_JITNet', action="store_true",
+                        help='Use a custom model, eg JITNetLight')
 
+    args = parser.parse_args()
 
-            # window.set_data(im)
-            # plt.pause(0.04)
-            # plt.show()
-
-            # frame_detections[frame_id] = [boxes, class_ids, scores, masks]
-            frame_id = frame_id + 1
-
-    plt.ioff()
-    plt.show()
-
-    #closing all open windows 
-    # cv2.destroyAllWindows()
-
-if __name__ == '__main__':
-    worker_stream()
+    main(args)
