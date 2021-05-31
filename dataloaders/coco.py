@@ -46,7 +46,7 @@ class CocoStuff164k(BaseDataSet):
         self.palette = palette.COCO_palette
         self.label_map = label_map
         self.things_only = things_only
-        print(label_map)
+        # print(label_map)
         super(CocoStuff164k, self).__init__(**kwargs)
 
     def _set_files(self):

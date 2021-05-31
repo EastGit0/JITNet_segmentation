@@ -17,7 +17,7 @@ class DetectronStuff(BaseDataSet):
         self.palette = palette.COCO_palette
         self.label_map = label_map
         self.things_only = things_only
-        print(label_map)
+        # print(label_map)
         super(DetectronStuff, self).__init__(**kwargs)
 
     def _set_files(self):
