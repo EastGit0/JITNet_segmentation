@@ -144,7 +144,7 @@ class Trainer(BaseTrainer):
                 if len(val_visual) < 15:
                     target_np = target.data.cpu().numpy()
                     output_np = output.data.max(1)[1].cpu().numpy()
-                    print(data[0].data.cpu(), target_np[0], output_np[0])
+                    # print(data[0].data.cpu(), target_np[0], output_np[0])
                     val_visual.append([data[0].data.cpu(), target_np[0], output_np[0]])
 
                 # PRINT INFO
