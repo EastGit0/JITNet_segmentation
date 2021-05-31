@@ -171,7 +171,8 @@ class BaseTrainer:
         # Load last run info, the model params, the optimizer and the loggers
         #self.start_epoch = checkpoint['epoch'] + 1
         self.start_epoch = 0
-        self.mnt_best = checkpoint['monitor_best']
+        # self.mnt_best = checkpoint['monitor_best']
+        self.mnt_best = 0
         self.not_improved_count = 0
 
         if checkpoint['config']['arch'] != self.config['arch']:
