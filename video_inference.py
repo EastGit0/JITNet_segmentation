@@ -110,15 +110,13 @@ class Student():
                 prediction = prediction[0].squeeze(0).cpu().detach().numpy()
                 prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
 
-                # prediction[np.where(prediction == 0)] = 1
-                # prediction[np.where(prediction > 1)] = 0
                 ##### Send Frame and Mask #####
 #                self.turn_in_homework(im, prediction)
 
                 ##### Display new Frame #####
+                prediction[np.where(prediction >= 1)] = 255
                 im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-                print(prediction)
-                cv2.imshow(self.window_name, output_im) #prediction.astype(np.uint8)
+                cv2.imshow(self.window_name, np.add(im, prediction)) #prediction.astype(np.uint8)
                 
 
                 ##### Check for New Weights #####
