@@ -116,7 +116,7 @@ class Student():
                 ##### Display new Frame #####
                 im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
                 print(im.shape)
-                print(prediction.shape)
+                print(prediction)
                 h,w = im.shape
                 output_im = Image.new('RGB', (w*2, h))
                 output_im.paste(im, (0,0))
