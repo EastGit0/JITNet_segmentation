@@ -116,12 +116,15 @@ class Student():
                 ##### Display new Frame #####
                 prediction[np.where(prediction >= 1)] = 255
                 im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+                # print(im)
+                # print(prediction)
+                # print(np.add(im,prediction))
+                # asdf
+                im = np.add(im, prediction).astype(np.uint8)
                 print(im)
-                print(prediction)
-                print(np.add(im,prediction))
                 asdf
-                # cv2.imshow(self.window_name, np.add(im, prediction).astype(np.uint8)) #prediction.astype(np.uint8)
-                cv2.imshow(self.window_name, prediction.astype(np.uint8))
+                cv2.imshow(self.window_name, np.add(im, prediction).astype(np.uint8)) #prediction.astype(np.uint8)
+                # cv2.imshow(self.window_name, prediction.astype(np.uint8))
 
                 ##### Check for New Weights #####
                 if os.path.exists(self.next_weight_path):
