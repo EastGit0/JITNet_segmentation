@@ -114,8 +114,11 @@ class Student():
 #                self.turn_in_homework(im, prediction)
 
                 ##### Display new Frame #####
-                im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-                im[np.where(prediction >= 1)] = 0
+                # im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+                background = np.where(prediction >= 1)
+                im[background,0] = 0
+                im[background,1] = 0
+                im[background,2] = 0
                 cv2.imshow(self.window_name, im) #prediction.astype(np.uint8)
 
                 ##### Check for New Weights #####
