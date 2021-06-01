@@ -115,6 +115,7 @@ class Student():
 
                 ##### Display new Frame #####
                 # im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+                print(im.shape)
                 im[np.where(prediction >= 1),:] = 0
                 cv2.imshow(self.window_name, im) #prediction.astype(np.uint8)
 
