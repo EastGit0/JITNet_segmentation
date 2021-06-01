@@ -103,8 +103,6 @@ class Student():
                 assert im is not None
                 self.frame_id = self.frame_id + 1
 
-                im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-
                 ##### Make Prediction #####
                 # input = normalize(to_tensor(im.convert('RGB'))).unsqueeze(0)
                 input = self.normalize(self.to_tensor(im)).unsqueeze(0)
@@ -116,6 +114,7 @@ class Student():
 #                self.turn_in_homework(im, prediction)
 
                 ##### Display new Frame #####
+                im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
                 print(im.shape)
                 h,w = im.shape
                 output_im = Image.new('RGB', (w*2, h))
