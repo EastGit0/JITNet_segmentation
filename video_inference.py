@@ -1,37 +1,18 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-
-import sys
-from collections import defaultdict
-import time
 import cv2
 import argparse
-import scipy
 import os
 import numpy as np
-import json
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms
-from scipy import ndimage
-from tqdm import tqdm
-from math import ceil
-from glob import glob
 from PIL import Image
-import dataloaders
-import models
 from utils.helpers import colorize_mask
 import matplotlib.pyplot as plt
-# from utils import palette
 from models.jitnet import JITNet
 from models.jitnetlight import JITNetLight
-
 from paramiko import SSHClient
 from scp import SCPClient
-
 from stream import VideoInputStream
 
 # OpenCL may be enabled by default in OpenCV3; disable it because it's not
@@ -65,11 +46,11 @@ class Student():
         # Set up SSH
         self.ssh_frame = SSHClient()
         self.ssh_frame.load_system_host_keys()
-        self.ssh_frame.connect('35.233.229.168:/home/cs348k/data/student_files/frames/')
+        self.ssh_frame.connect('35.233.229.168')
 
         self.ssh_mask = SSHClient()
         self.ssh_mask.load_system_host_keys()
-        self.ssh_mask.connect('35.233.229.168:/home/cs348k/data/student_files/masks/')
+        self.ssh_mask.connect('35.233.229.168')
 
         self.frame_id = 0
         self.window_name = "Steam"
@@ -130,10 +111,11 @@ class Student():
                 prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
 
                 ##### Send Frame and Mask #####
-                self.turn_in_homework(im, prediction)
+#                self.turn_in_homework(im, prediction)
 
                 ##### Display new Frame #####
-                w, h = im.size
+                print(im.shape)
+                h,w = im.shape
                 output_im = Image.new('RGB', (w*2, h))
                 output_im.paste(im, (0,0))
                 output_im.paste(prediction, (w,0))
@@ -169,7 +151,7 @@ class Student():
         #closing all open windows 
         # cv2.destroyAllWindows()
 
-def main(config, resume):
+def main(config):
     # Set Up Student
     student = Student(model_path=args.model_path, model_JITNet = (not args.not_JITNet))
 
