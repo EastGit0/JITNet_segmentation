@@ -110,6 +110,7 @@ class Student():
                 prediction = prediction[0].squeeze(0).cpu().detach().numpy()
                 prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
 
+                prediction[np.where(prediction >= 1)] = 1
                 ##### Send Frame and Mask #####
 #                self.turn_in_homework(im, prediction)
 
