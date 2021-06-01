@@ -1,6 +1,7 @@
 import cv2
 import argparse
 import os
+import sys
 import numpy as np
 import torch
 import torch.nn as nn
@@ -47,10 +48,12 @@ class Student():
         self.ssh_frame = SSHClient()
         self.ssh_frame.load_system_host_keys()
         self.ssh_frame.connect('35.233.229.168')
+        self.scp_frame = SCPClient(self.ssh_frame.get_transport())
 
         self.ssh_mask = SSHClient()
         self.ssh_mask.load_system_host_keys()
         self.ssh_mask.connect('35.233.229.168')
+        self.scp_mask = SCPClient(self.ssh_mask.get_transport())
 
         self.frame_id = 0
         self.window_name = "Steam"
@@ -73,15 +76,19 @@ class Student():
 
 
     def turn_in_homework(self, image, mask):
+        frame_name = "saved/stream_outputs/{}.jpg".format(self.frame_id)
+        mask_name = "saved/stream_outputs/{}.png".format(self.frame_id)
 
         # Save Frame and Mask
+        cv2.imwrite(frame_name, image) # frame
+        cv2.imwrite(mask_name, mask) #mask
 
         # Send Frame and Mask
-        with SCPClient(self.ssh_frame.get_transport()) as scp:
-            scp.put("{}.jpg".format(self.frame_id))
+        self.scp_frame.put(frame_name, remote_path='/home/cs348k/data/student/frames/')
+        self.scp_mask.put(mask_name, remote_path='/home/cs348k/data/student/masks/')
 
-        with SCPClient(self.ssh_mask.get_transport()) as scp:
-            scp.put("{}.png".format(self.frame_id))
+        exit()
+        asdf
 
 
     def video_stream(self):
@@ -98,7 +105,8 @@ class Student():
         cv2.startWindowThread()
         cv2.namedWindow(self.window_name)
 
-        while True:
+        # while True:
+        try:
             for im in s:
                 assert im is not None
                 self.frame_id = self.frame_id + 1
@@ -111,14 +119,11 @@ class Student():
                 prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
 
                 ##### Send Frame and Mask #####
-#                self.turn_in_homework(im, prediction)
+                self.turn_in_homework(im, prediction)
 
                 ##### Display new Frame #####
-                # im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-                background = np.where(prediction >= 1)
-                im[background,0] = 0
-                im[background,1] = 0
-                im[background,2] = 0
+                im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+                im[np.where(prediction >= 1)] = 0
                 cv2.imshow(self.window_name, im) #prediction.astype(np.uint8)
 
                 ##### Check for New Weights #####
@@ -140,6 +145,11 @@ class Student():
                 # window.set_data(im)
                 # plt.pause(0.04)
                 # plt.show()
+        except KeyboardInterrupt:
+            print("Exiting...")
+            self.scp_frame.close()
+            self.scp_mask.close()
+            sys.exit(0)
 
              
 
