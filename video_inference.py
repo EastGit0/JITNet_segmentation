@@ -59,7 +59,8 @@ class Student():
         self.window_name = "Steam"
 
         self.next_weight_id = 1
-        self.next_weight_path = "./teacher_weights/weights_{}".format(str(self.next_weight_id))
+        self.next_weight_path = "saved/teacher_weights/weights_{}".format(str(self.next_weight_id))
+
 
     def load_weights(self, path):
         print("---------- LOADING WEIGHTS: {} ---------".format(path))
@@ -84,11 +85,12 @@ class Student():
         cv2.imwrite(mask_name, mask) #mask
 
         # Send Frame and Mask
-        self.scp_frame.put(frame_name, remote_path='/home/cs348k/data/student/frames/')
-        self.scp_mask.put(mask_name, remote_path='/home/cs348k/data/student/masks/')
+        self.scp_frame.put(frame_name, remote_path='/home/cs348k/data/student/frames')
+        self.scp_mask.put(mask_name, remote_path='/home/cs348k/data/student/masks')
 
-        exit()
-        asdf
+        # delete frame and mask (no need to accumulate masks and frames)
+        os.system("rm {}".format(frame_name))
+        os.system("rm {}".format(mask_name))
 
 
     def video_stream(self):
@@ -129,8 +131,9 @@ class Student():
                 ##### Check for New Weights #####
                 if os.path.exists(self.next_weight_path):
                   self.load_weights(self.next_weight_path)
+                  os.system("rm {}".format(self.next_weight_path))
                   self.next_weight_id = self.next_weight_id + 1
-                  self.next_weight_path = "./teacher_weights/weights_{}".format(str(self.next_weight_id))
+                  self.next_weight_path = "saved/teacher_weights/weights_{}".format(str(self.next_weight_id))
                 else:
                   cv2.waitKey(100)
 
