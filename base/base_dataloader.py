@@ -9,8 +9,11 @@ class BaseDataLoader(DataLoader):
         self.shuffle = shuffle
         self.dataset = dataset
         self.nbr_examples = len(dataset)
-        if val_split: self.train_sampler, self.val_sampler = self._split_sampler(val_split)
-        else: self.train_sampler, self.val_sampler = None, None
+        if val_split: 
+            self.train_sampler, self.val_sampler = self._split_sampler(val_split)
+        else:
+            print("Val Split None") 
+            self.train_sampler, self.val_sampler = None, None
 
         self.init_kwargs = {
             'dataset': self.dataset,
