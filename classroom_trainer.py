@@ -30,7 +30,7 @@ class ClassroomTrainer(ClassroomBaseTrainer):
         if self.device ==  torch.device('cpu'): prefetch = False
         if prefetch:
             self.train_loader = DataPrefetcher(train_loader, device=self.device)
-            self.val_loader = DataPrefetcher(val_loader, device=self.device)
+            # self.val_loader = DataPrefetcher(val_loader, device=self.device)
 
         torch.backends.cudnn.benchmark = True
 
