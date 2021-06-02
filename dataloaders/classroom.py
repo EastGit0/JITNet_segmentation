@@ -24,16 +24,16 @@ class ClassroomStuff(BaseDataSet):
         # if self.split in ['train', 'val']:
         file_list = sorted(glob(os.path.join(self.root, 'frames', '*.jpg')))
         self.files = [os.path.basename(f).split('.')[0][6:] for f in file_list]
-        print("Self.Files:")
-        print(self.files)
+        # print("Self.Files:")
+        # print(self.files)
         # else: raise ValueError(f"Invalid split name {self.split}, either train2017 or val2017")
 
     def _load_data(self, index):
         image_id = self.files[index]
-        print("Image_ID:")
-        print(image_id)
-        image_path = os.path.join(self.root, 'frames/frame_', image_id + '.jpg')
-        label_path = os.path.join(self.root, 'ground_truths/ground_truth_', image_id + '.png')
+        # print("Image_ID:")
+        # print(image_id)
+        image_path = os.path.join(self.root, 'frames', 'frame_' + image_id + '.jpg')
+        label_path = os.path.join(self.root, 'ground_truths', 'ground_truth_' + image_id + '.png')
         image = np.asarray(Image.open(image_path).convert('RGB'), dtype=np.float32)
         label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
         if self.things_only:
