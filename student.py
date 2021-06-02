@@ -89,8 +89,8 @@ class Student():
         
         # Send Frame and Mask
         self.scp_frame.put(frame_name, remote_path='/home/cs348k/data/student/frames')
-        self.scp_mask.put(mask_name, remote_path='/home/cs348k/data/student/masks')
-        self.scp_mask.put(tensor_name, remote_path='/home/cs348k/data/student/masks')
+        self.scp_mask.put(mask_name, remote_path='/home/cs348k/data/student/predictions')
+        self.scp_mask.put(tensor_name, remote_path='/home/cs348k/data/student/predictions')
         
         # delete frame and mask (no need to accumulate masks and frames)
         os.system("rm {}".format(frame_name))
@@ -153,7 +153,7 @@ class Student():
                 # plt.pause(0.04)
                 # plt.show()
         except KeyboardInterrupt:
-            print("Exiting...")
+            print("\nExiting...")
             self.scp_frame.close()
             self.scp_mask.close()
             sys.exit(0)
