@@ -12,7 +12,7 @@ class BaseDataLoader(DataLoader):
         if val_split: 
             self.train_sampler, self.val_sampler = self._split_sampler(val_split)
         else:
-            print("Val Split None") 
+            # print("Val Split None") 
             self.train_sampler, self.val_sampler = None, None
 
         self.init_kwargs = {
