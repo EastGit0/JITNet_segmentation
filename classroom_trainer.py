@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 class ClassroomTrainer(ClassroomBaseTrainer):
     def __init__(self, model, loss, resume, config, train_loader, val_loader=None, train_logger=None, prefetch=True):
-        super(Trainer, self).__init__(model, loss, resume, config, train_loader, val_loader, train_logger)
+        super(ClassroomTrainer, self).__init__(model, loss, resume, config, train_loader, val_loader, train_logger)
 
         self.wrt_mode, self.wrt_step = 'train_', 0
         self.log_step = config['trainer'].get('log_per_iter', int(np.sqrt(self.train_loader.batch_size)))

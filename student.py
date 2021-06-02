@@ -45,15 +45,15 @@ class Student():
         self.load_weights(model_path)
 
         # Set up SSH
-        self.ssh_frame = SSHClient()
-        self.ssh_frame.load_system_host_keys()
-        self.ssh_frame.connect('35.233.229.168')
-        self.scp_frame = SCPClient(self.ssh_frame.get_transport())
+        self.ssh = SSHClient()
+        self.ssh.load_system_host_keys()
+        self.ssh.connect('35.233.229.168')
+        self.scp = SCPClient(self.ssh.get_transport())
 
-        self.ssh_mask = SSHClient()
-        self.ssh_mask.load_system_host_keys()
-        self.ssh_mask.connect('35.233.229.168')
-        self.scp_mask = SCPClient(self.ssh_mask.get_transport())
+        # self.ssh_mask = SSHClient()
+        # self.ssh_mask.load_system_host_keys()
+        # self.ssh_mask.connect('35.233.229.168')
+        # self.scp_mask = SCPClient(self.ssh_mask.get_transport())
 
         self.frame_id = 0
         self.window_name = "Steam"
@@ -88,9 +88,9 @@ class Student():
         torch.save(tensor_mask, tensor_name)
         
         # Send Frame and Mask
-        self.scp_frame.put(frame_name, remote_path='/home/cs348k/data/student/frames')
-        self.scp_mask.put(mask_name, remote_path='/home/cs348k/data/student/predictions')
-        self.scp_mask.put(tensor_name, remote_path='/home/cs348k/data/student/predictions')
+        self.scp.put(frame_name, remote_path='/home/cs348k/data/student/frames')
+        self.scp.put(mask_name, remote_path='/home/cs348k/data/student/predictions')
+        self.scp.put(tensor_name, remote_path='/home/cs348k/data/student/predictions')
         
         # delete frame and mask (no need to accumulate masks and frames)
         os.system("rm {}".format(frame_name))
