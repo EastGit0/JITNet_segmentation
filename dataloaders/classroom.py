@@ -22,6 +22,10 @@ class ClassroomStuff(BaseDataSet):
 
     def _set_files(self):
         # if self.split in ['train', 'val']:
+        path = os.path.join(self.root, 'frames', '/*.jpg')
+        print(path)
+        g_list = glob(os.path.join(self.root, 'frames', '/*.jpg'))
+        print(g_list)
         file_list = sorted(glob(os.path.join(self.root, 'frames', '/*.jpg')))
         print(file_list)
         self.files = [os.path.basename(f).split('.')[0][13:] for f in file_list]
