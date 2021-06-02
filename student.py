@@ -149,7 +149,7 @@ class Student():
                 # plt.pause(0.04)
                 # plt.show()
         except KeyboardInterrupt:
-            print("Exiting...")
+            print("\nExiting...")
             self.scp_frame.close()
             self.scp_mask.close()
             sys.exit(0)
