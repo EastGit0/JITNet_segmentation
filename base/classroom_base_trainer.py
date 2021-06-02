@@ -133,7 +133,7 @@ class ClassroomBaseTrainer:
 
         if checkpoint['config']['optimizer']['type'] != self.config['optimizer']['type']:
             self.logger.warning({'Warning! Current optimizer is not the same as the one in the checkpoint'})
-        self.optimizer.load_state_dict(checkpoint['optimizer'])
+        # self.optimizer.load_state_dict(checkpoint['optimizer'])
 
     def _train_epoch(self, epoch):
         raise NotImplementedError
