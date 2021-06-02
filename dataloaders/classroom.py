@@ -25,9 +25,9 @@ class ClassroomStuff(BaseDataSet):
         print(self.root)
         path = os.path.join(self.root, 'frames', '*.jpg')
         print(path)
-        g_list = glob(os.path.join(self.root, 'frames', '/*.jpg'))
+        g_list = glob(os.path.join(self.root, 'frames', '*.jpg'))
         print(g_list)
-        file_list = sorted(glob(os.path.join(self.root, 'frames', '/*.jpg')))
+        file_list = sorted(glob(os.path.join(self.root, 'frames', '*.jpg')))
         print(file_list)
         self.files = [os.path.basename(f).split('.')[0][13:] for f in file_list]
         print(self.files)
