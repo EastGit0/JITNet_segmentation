@@ -138,7 +138,7 @@ class Student():
                 cv2.imshow(self.window_name, im) #prediction.astype(np.uint8)
 
                 ##### Check for New Weights #####
-                # self.scp.get(self.next_weight_path, remote_path=("/home/cs348k/data/student/weights/" + self.config['arch']['type'] + "/"))
+                self.scp.get(local_path=self.next_weight_path, remote_path=("/home/cs348k/data/student/weights/{}/weights_{}".format(self.config['arch']['type'], str(self.next_weight_id))))
                 if os.path.exists(self.next_weight_path):
                   self.load_weights(self.next_weight_path)
                   os.system("rm {}".format(self.next_weight_path))
