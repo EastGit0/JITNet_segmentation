@@ -15,7 +15,7 @@
         "args":{
             "partition": "ClassroomStuff",
             "data_dir": "/home/cs348k/data/student/",
-            "batch_size": 12,
+            "batch_size": 4,
             "base_size": 768,
             "crop_size": 768,
             "augment": true,
