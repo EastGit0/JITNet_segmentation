@@ -178,7 +178,7 @@ class JITNet(BaseModel):
 
 if __name__ == "__main__":
     model = JITNet(81)
-    print(model)
+    # print(model)
 
     x = torch.rand(size=[8, 3, 480, 480])
     y = model(x)
