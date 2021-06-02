@@ -10,34 +10,39 @@ from torchvision import transforms
 from PIL import Image
 from utils.helpers import colorize_mask
 import matplotlib.pyplot as plt
-from models.jitnet import JITNet
-from models.jitnetlight import JITNetLight
+# from models.jitnet import JITNet
+# from models.jitnetlight import JITNetLight
 from paramiko import SSHClient
 from scp import SCPClient
 from stream import VideoInputStream
+import json
+import models
+
 
 # OpenCL may be enabled by default in OpenCV3; disable it because it's not
 # thread safe and causes unwanted GPU memory allocations.
 # cv2.ocl.setUseOpenCL(False)
 
 class Student():
-    def __init__(self, model_path, model_JITNet):
+    def __init__(self, model_path, config):
         
         if torch.cuda.is_available():
             print("Running JITNet on GPU!")
         else:
             print("Running JITNet on CPU!")
         
+        self.config = config
         self.to_tensor = transforms.ToTensor()
         self.normalize = transforms.Normalize([0.43931922, 0.41310471, 0.37480941], [0.24272706, 0.23649098, 0.23429529])
 
         num_classes = 81
-        if model_JITNet:
-          print("Using JITNet Model")
-          self.model = JITNet(num_classes)
-        else:
-          print("Using JITNetLight Model")
-          self.model = JITNetLight(num_classes)
+        # if self.config['arch']['type'] == "JITNet":
+        #   print("Using JITNet Model")
+        #   self.model = JITNet(num_classes)
+        # else:
+        #   print("Using JITNetLight Model")
+        #   self.model = JITNetLight(num_classes)
+        model = getattr(models, self.config['arch']['type'])(num_classes, **config['arch']['args'])
 
         self.availble_gpus = list(range(torch.cuda.device_count()))
         self.device = torch.device('cuda:0' if len(self.availble_gpus) > 0 else 'cpu')
@@ -133,6 +138,7 @@ class Student():
                 cv2.imshow(self.window_name, im) #prediction.astype(np.uint8)
 
                 ##### Check for New Weights #####
+                # self.scp.get(self.next_weight_path, remote_path=("/home/cs348k/data/student/weights/" + self.config['arch']['type'] + "/"))
                 if os.path.exists(self.next_weight_path):
                   self.load_weights(self.next_weight_path)
                   os.system("rm {}".format(self.next_weight_path))
@@ -169,7 +175,8 @@ class Student():
 
 def main(config):
     # Set Up Student
-    student = Student(model_path=args.model_path, model_JITNet = (not args.not_JITNet))
+    config = json.load(open(args.config))
+    student = Student(model_path=args.model_path, config=config)
 
     torch.cuda.empty_cache()
 
@@ -181,8 +188,10 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description='PyTorch Training')
     parser.add_argument('-mp', '--model_path', default=None,type=str,
                         help='Path to the starting Model')
-    parser.add_argument('--not_JITNet', action="store_true",
+    parser.add_argument('-c','--config', default='config_student.json',type=str,
                         help='Use a custom model, eg JITNetLight')
+    # parser.add_argument('--not_JITNet', action="store_true",
+    #                     help='Use a custom model, eg JITNetLight')
 
     args = parser.parse_args()
 
