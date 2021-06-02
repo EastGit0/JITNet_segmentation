@@ -105,7 +105,7 @@ class ClassroomBaseTrainer:
         for epoch in range(self.start_epoch, self.epochs+1):
             # RUN TRAIN (AND VAL)
             results = self._train_epoch(epoch)
-            self.lr_scheduler.step()
+            # self.lr_scheduler.step()
 
         self._save_checkpoint(epoch, save_best=False)
         
