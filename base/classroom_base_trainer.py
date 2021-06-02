@@ -123,7 +123,7 @@ class ClassroomBaseTrainer:
         self.logger.info(f'Loading checkpoint : {resume_path}')
         checkpoint = torch.load(resume_path, map_location=self.device)
 
-        self.start_epoch = 0
+        self.start_epoch = 1
         self.mnt_best = 0
         self.not_improved_count = 0
 
