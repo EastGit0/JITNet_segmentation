@@ -35,6 +35,7 @@ class ClassroomTrainer(ClassroomBaseTrainer):
         torch.backends.cudnn.benchmark = True
 
     def _train_epoch(self, epoch):
+        print("Starting Epoch!")
         self.logger.info('\n')
 
         self.model.train()
