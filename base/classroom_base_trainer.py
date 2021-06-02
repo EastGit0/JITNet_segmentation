@@ -101,6 +101,7 @@ class ClassroomBaseTrainer:
         return device, available_gpus
 
     def train(self):
+        self.train_loader.dataset._set_files()
         self.train_count = self.train_count + 1
         for epoch in range(self.start_epoch, self.epochs+1):
             # RUN TRAIN (AND VAL)
