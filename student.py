@@ -78,7 +78,7 @@ class Student():
 
     def turn_in_homework(self, image, mask):
         frame_name = "saved/stream_outputs/frame_{}.jpg".format(self.frame_id)
-        mask_name = "saved/stream_outputs/mask_{}.png".format(self.frame_id)
+        mask_name = "saved/stream_outputs/prediction_{}.png".format(self.frame_id)
 
         # Save Frame and Mask
         cv2.imwrite(frame_name, image) # frame
@@ -86,7 +86,7 @@ class Student():
 
         # Send Frame and Mask
         self.scp_frame.put(frame_name, remote_path='/home/cs348k/data/student/frames')
-        self.scp_mask.put(mask_name, remote_path='/home/cs348k/data/student/masks')
+        self.scp_mask.put(mask_name, remote_path='/home/cs348k/data/student/predictions')
 
         # delete frame and mask (no need to accumulate masks and frames)
         os.system("rm {}".format(frame_name))
