@@ -42,7 +42,7 @@ class Student():
         # else:
         #   print("Using JITNetLight Model")
         #   self.model = JITNetLight(num_classes)
-        model = getattr(models, self.config['arch']['type'])(num_classes, **config['arch']['args'])
+        self.model = getattr(models, self.config['arch']['type'])(num_classes, **config['arch']['args'])
 
         self.availble_gpus = list(range(torch.cuda.device_count()))
         self.device = torch.device('cuda:0' if len(self.availble_gpus) > 0 else 'cpu')
