@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 # from models.jitnet import JITNet
 # from models.jitnetlight import JITNetLight
 from paramiko import SSHClient
-from scp import SCPClient
+from scp import SCPClient, SCPException
 from stream import VideoInputStream
 import json
 import models
@@ -140,7 +140,7 @@ class Student():
                 ##### Check for New Weights #####
                 try:
                     self.scp.get(local_path=self.next_weight_path, remote_path=("/home/cs348k/data/student/weights/{}/weights_{}".format(self.config['arch']['type'], str(self.next_weight_id))))
-                except SCPClient.SCPException:
+                except SCPException:
                     pass
 
                 if os.path.exists(self.next_weight_path):
