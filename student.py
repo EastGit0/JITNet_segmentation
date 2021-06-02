@@ -139,8 +139,9 @@ class Student():
 
                 ##### Check for New Weights #####
                 try:
-                    self.scp.get(local_path=self.next_weight_path, remote_path=("/home/cs348k/data/student/weights/{}/weights_{}".format(self.config['arch']['type'], str(self.next_weight_id))))
+                    self.scp.get(local_path=self.next_weight_path, remote_path=("/home/cs348k/data/student/weights/{}/weights_{}.pth".format(self.config['arch']['type'], str(self.next_weight_id))))
                 except SCPException:
+                    print("No Weights!")
                     pass
 
                 if os.path.exists(self.next_weight_path):
