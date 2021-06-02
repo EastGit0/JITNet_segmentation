@@ -12,6 +12,7 @@ from utils.helpers import colorize_mask
 import matplotlib.pyplot as plt
 from models.jitnet import JITNet
 from models.jitnetlight import JITNetLight
+import paramiko
 from paramiko import SSHClient
 from scp import SCPClient
 from stream import VideoInputStream
@@ -45,14 +46,19 @@ class Student():
         self.load_weights(model_path)
 
         # Set up SSH
+        #paramiko.set_missing_host_key_policy(paramiko.AutoAddPolicy()) 
         self.ssh_frame = SSHClient()
         self.ssh_frame.load_system_host_keys()
+        self.ssh_frame.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.ssh_frame.connect('35.233.229.168')
+        #self.ssh_frame.connect('10.240.0.77')
         self.scp_frame = SCPClient(self.ssh_frame.get_transport())
 
         self.ssh_mask = SSHClient()
         self.ssh_mask.load_system_host_keys()
+        self.ssh_mask.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.ssh_mask.connect('35.233.229.168')
+        #self.ssh_mask.connect('10.240.0.77')
         self.scp_mask = SCPClient(self.ssh_mask.get_transport())
 
         self.frame_id = 0
@@ -79,19 +85,23 @@ class Student():
     def turn_in_homework(self, image, mask):
         frame_name = "saved/stream_outputs/{}.jpg".format(self.frame_id)
         mask_name = "saved/stream_outputs/{}.png".format(self.frame_id)
-
+        tensor_name = "saved/stream_outputs/{}.pt".format("prediction_" + str(self.frame_id))
+         
         # Save Frame and Mask
         cv2.imwrite(frame_name, image) # frame
         cv2.imwrite(mask_name, mask) #mask
-
+        tensor_mask = self.to_tensor(mask)
+        torch.save(tensor_mask, tensor_name)
+        
         # Send Frame and Mask
         self.scp_frame.put(frame_name, remote_path='/home/cs348k/data/student/frames')
         self.scp_mask.put(mask_name, remote_path='/home/cs348k/data/student/masks')
-
+        self.scp_mask.put(tensor_name, remote_path='/home/cs348k/data/student/masks')
+         
         # delete frame and mask (no need to accumulate masks and frames)
         os.system("rm {}".format(frame_name))
         os.system("rm {}".format(mask_name))
-
+        os.system("rm {}".format(tensor_name))
 
     def video_stream(self):
         """main function"""
