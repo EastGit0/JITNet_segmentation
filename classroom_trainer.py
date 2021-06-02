@@ -51,7 +51,7 @@ class ClassroomTrainer(ClassroomBaseTrainer):
             #data, target = data.to(self.device), target.to(self.device)
 
             # LOSS & OPTIMIZE
-            self.optimizer.zero_grad()
+            self.optimizer.zero_grad(set_to_none=True)
             loss, seg_metrics = self.model(data, target)
  
             if isinstance(self.model, torch.nn.DataParallel):
