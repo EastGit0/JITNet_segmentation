@@ -65,7 +65,7 @@
         "save_dir": "saved/teacher/",
         "save_period": 1,
 
-        "monitor": "off Mean_IoU",
+        "monitor": "off",
         "early_stop": 2,
 
         "tensorboard": false,
