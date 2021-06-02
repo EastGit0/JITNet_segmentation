@@ -22,7 +22,7 @@ class ClassroomStuff(BaseDataSet):
 
     def _set_files(self):
         # if self.split in ['train', 'val']:
-        file_list = sorted(glob(os.path.join(self.root, 'frames/frame_', '*.jpg')))
+        file_list = sorted(glob(os.path.join(self.root, 'frames', '/*.jpg')))
         print(file_list)
         self.files = [os.path.basename(f).split('.')[0][13:] for f in file_list]
         print(self.files)
@@ -30,7 +30,7 @@ class ClassroomStuff(BaseDataSet):
 
     def _load_data(self, index):
         image_id = self.files[index]
-        image_path = os.path.join(self.root, 'frames/frames_', image_id + '.jpg')
+        image_path = os.path.join(self.root, 'frames/frame_', image_id + '.jpg')
         label_path = os.path.join(self.root, 'ground_truths/ground_truth_', image_id + '.png')
         image = np.asarray(Image.open(image_path).convert('RGB'), dtype=np.float32)
         label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
