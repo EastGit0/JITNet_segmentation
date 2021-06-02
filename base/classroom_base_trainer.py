@@ -115,7 +115,7 @@ class ClassroomBaseTrainer:
         state = {
             'state_dict': self.model.state_dict(),
         }
-        filename = os.path.join(self.checkpoint_dir, f'weights_{}.pth')
+        filename = os.path.join(self.checkpoint_dir, "weights_{}.pth".format(self.train_count))
         self.logger.info(f'\nSaving a checkpoint: {filename} ...')
         torch.save(state, filename)
 
