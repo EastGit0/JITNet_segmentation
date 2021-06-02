@@ -77,8 +77,8 @@ class Student():
 
 
     def turn_in_homework(self, image, mask):
-        frame_name = "saved/stream_outputs/{}.jpg".format(self.frame_id)
-        mask_name = "saved/stream_outputs/{}.png".format(self.frame_id)
+        frame_name = "saved/stream_outputs/frame_{}.jpg".format(self.frame_id)
+        mask_name = "saved/stream_outputs/mask_{}.png".format(self.frame_id)
 
         # Save Frame and Mask
         cv2.imwrite(frame_name, image) # frame
