@@ -23,7 +23,7 @@ class ClassroomStuff(BaseDataSet):
     def _set_files(self):
         # if self.split in ['train', 'val']:
         print(self.root)
-        path = os.path.join(self.root, 'frames', '/*.jpg')
+        path = os.path.join(self.root, 'frames', '*.jpg')
         print(path)
         g_list = glob(os.path.join(self.root, 'frames', '/*.jpg'))
         print(g_list)
