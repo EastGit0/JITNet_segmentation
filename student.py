@@ -158,7 +158,7 @@ class Student():
                     # print(prediction[0,:,:])
                     # print(prediction[1,:,:])
 
-                    person = (prediction[1,:,:]*128).numpy()
+                    person = (prediction[1,:,:]*64).numpy()
                     item_12 = (prediction[12,:,:]).numpy()
                     background = (prediction[0,:,:]).numpy()
                     super_background = background.copy()
