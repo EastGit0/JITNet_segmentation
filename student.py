@@ -151,7 +151,7 @@ class Student():
                 low = np.where(prediction < threshold)
                 high = np.where(prediction >= threshold)
                 prediction[low] = 0
-                prediction[high] = 1
+                prediction[high] = 255
 
                 end_time_3 = time.time()
 
