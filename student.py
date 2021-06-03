@@ -130,17 +130,13 @@ class Student():
                 prediction = self.model(input.to(self.device))
 
 
-                print(prediction)
-                print(prediction[0].shape)
-
-
-                # if 0:
-                #     with torch.no_grad():
-                #         probs = F.softmax(torch.from_numpy(prediction), dim=1)
-                #         print(probs.shape)
-                #         probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
-                #         print(probs_max.shape)
-                #         print(preds.shape)
+                if 0:
+                    with torch.no_grad():
+                        probs = F.softmax(torch.from_numpy(prediction), dim=1)
+                        print(probs.shape)
+                        probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
+                        print(probs_max.shape)
+                        print(preds.shape)
 
 
 
@@ -149,23 +145,22 @@ class Student():
 
 
 
-                # else:
-                with torch.no_grad():
+                else:
                     end_time_1 = time.time()
-                    # prediction = prediction[0].squeeze(0).cpu().detach().numpy()
+                    prediction = prediction[0].squeeze(0).cpu().detach().numpy()
                     # print(prediction)
                     end_time_2 = time.time()
 
-                    prediction = F.softmax(prediction[0], dim=0)
+                    prediction = F.softmax(torch.from_numpy(prediction), dim=0)
 
                     end_time_3 = time.time()
                     print("TIME: ", end_time_3 - end_time_2)
-                    print(prediction[0,0,:,:])
-                    print(prediction[0,1,:,:])
+                    print(prediction[0,:,:])
+                    print(prediction[1,:,:])
 
-                    person = (prediction[0,1,:,:] * 128).numpy()
-                    item_12 = (prediction[0,12,:,:] * 255).numpy()
-                    background = (prediction[0,0,:,:]).numpy()
+                    person = (prediction[1,:,:] * 128).numpy()
+                    item_12 = (prediction[12,:,:] * 255).numpy()
+                    background = (prediction[0,:,:]).numpy()
                     super_background = background.copy()
                     print("Max SUPER BACKGROUND: ", np.amax(super_background))
                     super_background[np.where(super_background < .92)] = 0
@@ -173,12 +168,12 @@ class Student():
                     cv2.imshow("Item 12", item_12)
                     cv2.imshow("Background", background)
                     cv2.imshow("Super_Background", super_background)
-                    cv2.imshow("Summed", ((torch.sum(prediction[0,2:,:,:], dim=1)).numpy()))
-                    prediction, _ = prediction.max(1)
+                    cv2.imshow("Summed", ((torch.sum(prediction[2:,:,:], dim=0)).numpy()))
+                    prediction, _ = prediction.max(0)
                     # prediction = torch.max(prediction, dim=0)
                     print(prediction)
                     prediction = prediction.numpy() * 255
-                    # cv2.imshow("argmax", prediction.astype(np.uint8))
+                    cv2.imshow("argmax", prediction.astype(np.uint8))
                     print(prediction)
                 
                 
