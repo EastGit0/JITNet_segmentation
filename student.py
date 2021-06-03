@@ -128,32 +128,50 @@ class Student():
                 # input = normalize(to_tensor(im.convert('RGB'))).unsqueeze(0)
                 input = self.normalize(self.to_tensor(im)).unsqueeze(0)
                 prediction = self.model(input.to(self.device))
-                end_time_1 = time.time()
-                prediction = prediction[0].squeeze(0).cpu().detach().numpy()
-                # print(prediction)
-                end_time_2 = time.time()
-                prediction = F.softmax(torch.from_numpy(prediction), dim=0)
-                end_time_3 = time.time()
-                print("TIME: ", end_time_3 - end_time_2)
-                print(prediction[0,:,:])
-                print(prediction[1,:,:])
 
-                person = (prediction[1,:,:] * 128).numpy()
-                item_12 = (prediction[12,:,:] * 255).numpy()
-                background = (prediction[0,:,:]).numpy()
-                super_background = background.copy()
-                print("Max SUPER BACKGROUND: ", np.amax(super_background))
-                super_background[np.where(super_background < .92)] = 0
-                cv2.imshow("Person", person)
-                cv2.imshow("Item 12", item_12)
-                cv2.imshow("Background", background)
-                cv2.imshow("Super_Background", super_background)
-                cv2.imshow("Summed", ((torch.sum(prediction[2:,:,:], dim=0)).numpy()))
-                prediction = prediction.argmax(0)
-                print(prediction)
-                prediction = prediction.numpy()
-                cv2.imshow("argmax", prediction.astype(np.uint8))
-                print(prediction)
+
+                if 1:
+                    with torch.no_grad():
+                        probs = F.softmax(prediction, dim=1)
+                        print(probs.shape)
+                        probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
+                        print(probs_max.shape)
+                        print(preds.shape)
+
+
+
+
+
+
+
+
+                else:
+                    end_time_1 = time.time()
+                    prediction = prediction[0].squeeze(0).cpu().detach().numpy()
+                    # print(prediction)
+                    end_time_2 = time.time()
+                    prediction = F.softmax(torch.from_numpy(prediction), dim=0)
+                    end_time_3 = time.time()
+                    print("TIME: ", end_time_3 - end_time_2)
+                    print(prediction[0,:,:])
+                    print(prediction[1,:,:])
+
+                    person = (prediction[1,:,:] * 128).numpy()
+                    item_12 = (prediction[12,:,:] * 255).numpy()
+                    background = (prediction[0,:,:]).numpy()
+                    super_background = background.copy()
+                    print("Max SUPER BACKGROUND: ", np.amax(super_background))
+                    super_background[np.where(super_background < .92)] = 0
+                    cv2.imshow("Person", person)
+                    cv2.imshow("Item 12", item_12)
+                    cv2.imshow("Background", background)
+                    cv2.imshow("Super_Background", super_background)
+                    cv2.imshow("Summed", ((torch.sum(prediction[2:,:,:], dim=0)).numpy()))
+                    prediction = prediction.argmax(0)
+                    print(prediction)
+                    prediction = prediction.numpy()
+                    cv2.imshow("argmax", prediction.astype(np.uint8))
+                    print(prediction)
                 
                 
                 cv2.waitKey(10000)
