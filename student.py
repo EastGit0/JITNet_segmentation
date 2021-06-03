@@ -38,13 +38,15 @@ class Student():
         self.normalize = transforms.Normalize([0.43931922, 0.41310471, 0.37480941], [0.24272706, 0.23649098, 0.23429529])
 
         num_classes = 81
-        # if self.config['arch']['type'] == "JITNet":
-        #   print("Using JITNet Model")
-        #   self.model = JITNet(num_classes)
-        # else:
-        #   print("Using JITNetLight Model")
-        #   self.model = JITNetLight(num_classes)
+        if self.config['arch']['type'] == "JITNet":
+          print("Using JITNet Model")
+          # self.model = JITNet(num_classes)
+        else:
+          print("Using JITNetLight Model")
+          # self.model = JITNetLight(num_classes)
         self.model = getattr(models, self.config['arch']['type'])(num_classes, **config['arch']['args'])
+
+        print(f'\n{self.model}\n')
 
         self.availble_gpus = list(range(torch.cuda.device_count()))
         self.device = torch.device('cuda:0' if len(self.availble_gpus) > 0 else 'cpu')
@@ -62,7 +64,7 @@ class Student():
         # self.ssh_mask.connect('35.233.229.168')
         # self.scp_mask = SCPClient(self.ssh_mask.get_transport())
 
-        self.frame_id = 1212
+        self.frame_id = 0
         self.window_name = "Webcam"
 
         self.next_weight_id = 1
