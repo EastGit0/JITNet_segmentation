@@ -133,7 +133,10 @@ class Student():
                 
                 end_time_1 = time.time()
                 
-                prediction = F.softmax(torch.from_numpy(prediction), dim=0)
+                # prediction = F.softmax(torch.from_numpy(prediction), dim=0)
+
+                prediction = prediction.exp()
+                prediction = prediction / prediction.sum(0, keepdim=True)
 
                 end_time_2 = time.time()
 
@@ -141,7 +144,7 @@ class Student():
 
                 # person = (prediction[1,:,:]*8).numpy()
                 # item_12 = (prediction[12,:,:]).numpy()
-                prediction = (prediction[0,:,:]).numpy()
+                prediction = (prediction[0,:,:])
                 # prediction = median_filter(prediction, (15, 15), mode='constant', cval=0)
                 threshold = 0.92
                 low = np.where(prediction < threshold)
