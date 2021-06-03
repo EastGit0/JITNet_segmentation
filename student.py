@@ -164,8 +164,8 @@ class Student():
                     background = (prediction[0,:,:]).numpy()
                     super_background = background.copy()
                     summed_p12 = item_12 + person
-                    summed_p12 = medfilt(summed_p12, 5)
-                    item_12 = medfilt(item_12, 5)
+                    summed_p12 = medfilt(summed_p12, 11)
+                    item_12 = medfilt(item_12, 11)
                     # item_12 = item_12 * 255
                     print("Median SUPER BACKGROUND: ", np.median(super_background))
                     print("Median Summed: ", np.median(summed_p12))
