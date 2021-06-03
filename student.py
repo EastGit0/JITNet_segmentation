@@ -142,6 +142,7 @@ class Student():
                 item_12 = (prediction[12,:,:] * 255).numpy()
                 background = (prediction[0,:,:]).numpy()
                 super_background = background.copy()
+                print("Max SUPER BACKGROUND: ", np.amax(super_background))
                 super_background[np.where(super_background < 128)] = 0
                 cv2.imshow("Person", person)
                 cv2.imshow("Item 12", item_12)
@@ -153,7 +154,7 @@ class Student():
                 prediction = prediction.numpy()
                 cv2.imshow("argmax", prediction.astype(np.uint8))
                 print(prediction)
-                print("Max SUPER BACKGROUND: ", np.amax(super_background))
+                
                 
                 cv2.waitKey(10000)
                 continue
