@@ -147,7 +147,7 @@ class Student():
                 # item_12 = (prediction[12,:,:]).numpy()
                 prediction = (prediction[0,:,:])
                 # prediction = median_filter(prediction, (15, 15), mode='constant', cval=0)
-                threshold = 0.92
+                threshold = 0.88
                 low = np.where(prediction < threshold)
                 high = np.where(prediction >= threshold)
                 prediction[low] = 0
