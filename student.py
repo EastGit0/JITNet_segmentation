@@ -130,7 +130,7 @@ class Student():
                 prediction = self.model(input.to(self.device))
 
 
-                if 1:
+                if 0:
                     with torch.no_grad():
                         probs = F.softmax(torch.from_numpy(prediction), dim=1)
                         print(probs.shape)
@@ -167,7 +167,8 @@ class Student():
                     cv2.imshow("Background", background)
                     cv2.imshow("Super_Background", super_background)
                     cv2.imshow("Summed", ((torch.sum(prediction[2:,:,:], dim=0)).numpy()))
-                    prediction = prediction.argmax(0)
+                    # prediction = prediction.argmax(0)
+                    prediction = torch.max(prediction, dim=0)
                     print(prediction)
                     prediction = prediction.numpy()
                     cv2.imshow("argmax", prediction.astype(np.uint8))
