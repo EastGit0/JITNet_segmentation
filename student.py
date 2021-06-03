@@ -87,22 +87,37 @@ class Student():
 
     def turn_in_homework(self, image, mask):
         frame_name = "saved/stream_outputs/{}.jpg".format("frame_" + str(self.frame_id))
+        grey_name = "saved/stream_outputs/{}.jpg".format("grey_" + str(self.frame_id))
         mask_name = "saved/stream_outputs/{}.png".format("prediction_" + str(self.frame_id))
         # tensor_name = "saved/stream_outputs/{}.pt".format("prediction_" + str(self.frame_id))
+
+        grey_im = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         # Save Frame and Mask
         cv2.imwrite(frame_name, image) # frame
         cv2.imwrite(mask_name, mask) #mask
+        cv2.imwrite(grey_name, grey_im) #mask
         # tensor_mask = self.to_tensor(mask)
         # torch.save(tensor_mask, tensor_name)
         
         # Send Frame and Mask
+        t1 = time.time()
         self.scp.put(frame_name, remote_path='/home/cs348k/data/student/frames')
+        t2 = time.time()
         self.scp.put(mask_name, remote_path='/home/cs348k/data/student/predictions')
+        t3 = time.time()
+        self.scp.put(grey_name, remote_path='/home/cs348k/data/student/frames')
+        t4 = time.time()
+
+
+        print("\nTransfer Time Frame Color: ", t2-t1)
+        print("Transfer Time Frame Grey: ", t4-t3)
+        print("Transfer Time Mask: ", t3-t2)
         # self.scp.put(tensor_name, remote_path='/home/cs348k/data/student/predictions')
         
         # delete frame and mask (no need to accumulate masks and frames)
         os.system("rm {}".format(frame_name))
+        os.system("rm {}".format(grey_name))
         os.system("rm {}".format(mask_name))
         # os.system("rm {}".format(tensor_name))
 
