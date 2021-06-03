@@ -41,7 +41,7 @@ class MailBox_Process(multiprocessing.Process):
             # Student.turn_in_homework(image, None)
 
             t2 = time.time()
-            print("\nTransfer Frame")
+            print("\nProcess 1: Transfer Frame")
 
 class Student():
     def __init__(self, model_path, config):
@@ -289,7 +289,7 @@ class Student():
                 # Displaying the image 
                 end_time = time.time()
 
-                print("Seconds Per Frame = ", end_time-start_time)
+                print("Process 0: Seconds Per Frame = ", end_time-start_time)
 
                 # window.set_data(im)
                 # plt.pause(0.04)
