@@ -55,11 +55,11 @@ class Student():
 
         self.load_weights(model_path)
 
-        # Set up SSH
-        self.ssh = SSHClient()
-        self.ssh.load_system_host_keys()
-        self.ssh.connect('35.233.229.168')
-        self.scp = SCPClient(self.ssh.get_transport())
+        # # Set up SSH
+        # self.ssh = SSHClient()
+        # self.ssh.load_system_host_keys()
+        # self.ssh.connect('35.233.229.168')
+        # self.scp = SCPClient(self.ssh.get_transport())
 
         # self.ssh_mask = SSHClient()
         # self.ssh_mask.load_system_host_keys()
@@ -118,7 +118,7 @@ class Student():
         
         # Send Frame and Mask
         # t1 = time.time()
-        self.scp.put(frame_name, remote_path='/home/cs348k/data/student/frames')
+        # self.scp.put(frame_name, remote_path='/home/cs348k/data/student/frames')
         # t2 = time.time()
         # self.scp.put(mask_name, remote_path='/home/cs348k/data/student/predictions')
         # t3 = time.time()
