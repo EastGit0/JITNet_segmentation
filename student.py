@@ -21,6 +21,8 @@ import time
 # from scipy.signal import medfilt
 from scipy.ndimage import median_filter
 
+import multiprocessing
+
 # OpenCL may be enabled by default in OpenCV3; disable it because it's not
 # thread safe and causes unwanted GPU memory allocations.
 # cv2.ocl.setUseOpenCL(False)
@@ -70,6 +72,20 @@ class Student():
         self.next_weight_id = 1
         self.next_weight_path = "saved/teacher_weights/weights_{}".format(str(self.next_weight_id))
 
+    class MailBox_Process(multiprocessing.Process):
+        def __init__(self, id, queue):
+            super(self.MailBox_Process, self).__init__()
+            self.id = id
+            self.queue = queue
+                    
+        def run(self):
+            self.queue.put(True)
+            while True:
+                image = self.queue.get()
+                t1 = time.time()
+                self.turn_in_homework(self, image, None)
+                t2 = time.time()
+                print("\nTransfer Time Frame Color: ", t2-t1)
 
     def load_weights(self, path):
         print("---------- LOADING WEIGHTS: {} ---------".format(path))
@@ -87,48 +103,56 @@ class Student():
 
     def turn_in_homework(self, image, mask):
         frame_name = "saved/stream_outputs/{}.jpg".format("frame_" + str(self.frame_id))
-        grey_name = "saved/stream_outputs/{}.jpg".format("grey_" + str(self.frame_id))
-        mask_name = "saved/stream_outputs/{}.png".format("prediction_" + str(self.frame_id))
+        # grey_name = "saved/stream_outputs/{}.jpg".format("grey_" + str(self.frame_id))
+        # mask_name = "saved/stream_outputs/{}.png".format("prediction_" + str(self.frame_id))
         # tensor_name = "saved/stream_outputs/{}.pt".format("prediction_" + str(self.frame_id))
 
-        grey_im = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # grey_im = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         # Save Frame and Mask
         cv2.imwrite(frame_name, image) # frame
-        cv2.imwrite(mask_name, mask) #mask
-        cv2.imwrite(grey_name, grey_im) #mask
+        # cv2.imwrite(mask_name, mask) #mask
+        # cv2.imwrite(grey_name, grey_im) #mask
         # tensor_mask = self.to_tensor(mask)
         # torch.save(tensor_mask, tensor_name)
         
         # Send Frame and Mask
-        t1 = time.time()
+        # t1 = time.time()
         self.scp.put(frame_name, remote_path='/home/cs348k/data/student/frames')
-        t2 = time.time()
-        self.scp.put(mask_name, remote_path='/home/cs348k/data/student/predictions')
-        t3 = time.time()
-        self.scp.put(grey_name, remote_path='/home/cs348k/data/student/frames')
-        t4 = time.time()
+        # t2 = time.time()
+        # self.scp.put(mask_name, remote_path='/home/cs348k/data/student/predictions')
+        # t3 = time.time()
+        # self.scp.put(grey_name, remote_path='/home/cs348k/data/student/frames')
+        # t4 = time.time()
 
 
-        print("\nTransfer Time Frame Color: ", t2-t1)
-        print("Transfer Time Frame Grey: ", t4-t3)
-        print("Transfer Time Mask: ", t3-t2)
+        # print("\nTransfer Time Frame Color: ", t2-t1)
+        # print("Transfer Time Frame Grey: ", t4-t3)
+        # print("Transfer Time Mask: ", t3-t2)
         # self.scp.put(tensor_name, remote_path='/home/cs348k/data/student/predictions')
         
         # delete frame and mask (no need to accumulate masks and frames)
         os.system("rm {}".format(frame_name))
-        os.system("rm {}".format(grey_name))
-        os.system("rm {}".format(mask_name))
+        # os.system("rm {}".format(grey_name))
+        # os.system("rm {}".format(mask_name))
         # os.system("rm {}".format(tensor_name))
 
     def video_stream(self):
         """main function"""
+
+        multiprocessing.set_start_method("spawn", force=True)
 
         ## Loop Over Video Stream
         s = VideoInputStream(0)
 
         # ax1 = plt.subplot(1,1,1)
         # plt.show()
+
+        queue = multiprocessing.Queue()
+        mailbox = self.MailBox_Process(0, queue)
+        mailbox.start()
+
+        queue.get()
 
         # Window name in which image is displayed
 
@@ -138,25 +162,30 @@ class Student():
         # while True:
         try:
             for im in s:
+                start_time = time.time()
                 assert im is not None
                 self.frame_id = self.frame_id + 1
 
+                ##### Send Frame and Mask #####
+                # self.turn_in_homework(im, prediction)
+                queue.put(im)
+
                 ##### Make Prediction #####
-                start_time = time.time()
+                # start_time = time.time()
 
                 input = self.normalize(self.to_tensor(im)).unsqueeze(0)
                 prediction = self.model(input.to(self.device))
                 with torch.no_grad():
                     prediction = prediction[0].squeeze(0).numpy()
                 
-                end_time_1 = time.time()
+                # end_time_1 = time.time()
                 
                 # prediction = F.softmax(torch.from_numpy(prediction), dim=0)
 
                 prediction = np.exp(prediction)
                 prediction = prediction / np.sum(prediction, axis=0, keepdims=False)
 
-                end_time_2 = time.time()
+                # end_time_2 = time.time()
 
                 
 
@@ -170,7 +199,7 @@ class Student():
                 prediction[low] = 0
                 prediction[high] = 255
 
-                end_time_3 = time.time()
+                # end_time_3 = time.time()
 
                 # super_background = background.copy()
                 # summed_p12 = item_12 + person
@@ -198,23 +227,24 @@ class Student():
 
                 
 
-                ##### Send Frame and Mask #####
+                # ##### Send Frame and Mask #####
                 # self.turn_in_homework(im, prediction)
-                end_time_4 = time.time()
+                # end_time_4 = time.time()
 
                 ##### Display new Frame #####
                 im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
                 im[low] = 0
                 cv2.imshow(self.window_name, im) #prediction.astype(np.uint8)
-                end_time_5 = time.time()
+                # end_time_5 = time.time()
 
                 ##### Check for New Weights #####
-                try:
-                    scp_time_1 = time.time()
-                    self.scp.get(local_path=self.next_weight_path, remote_path=("/home/cs348k/data/student/weights/{}/weights_{}.pth".format(self.config['arch']['type'], str(self.next_weight_id))))
-                    scp_time_2 = time.time()
-                except SCPException:
-                    scp_time_2 = time.time()
+                # try:
+                #     # scp_time_1 = time.time()
+                #     # self.scp.get(local_path=self.next_weight_path, remote_path=("/home/cs348k/data/student/weights/{}/weights_{}.pth".format(self.config['arch']['type'], str(self.next_weight_id))))
+                #     # scp_time_2 = time.time()
+                # except SCPException:
+                #     pass
+                    # scp_time_2 = time.time()
 
                 if os.path.exists(self.next_weight_path):
                   weights_time_1 = time.time()
@@ -228,20 +258,22 @@ class Student():
                   cv2.waitKey(5)
 
 
-                print("JITNet Time: ", end_time_1 - start_time)
-                print("Softmax Time: ", end_time_2 - end_time_1)
-                print("Thresholding Time: ", end_time_3 - end_time_2)
-                print("TX Frame Time: ", end_time_4 - end_time_3)
-                print("Display Image Time: ", end_time_5 - end_time_4)
-                print("RX Weights Time: ", scp_time_2 - scp_time_1)
-                print("\n")
+                # print("JITNet Time: ", end_time_1 - start_time)
+                # print("Softmax Time: ", end_time_2 - end_time_1)
+                # print("Thresholding Time: ", end_time_3 - end_time_2)
+                # print("TX Frame Time: ", end_time_4 - end_time_3)
+                # print("Display Image Time: ", end_time_5 - end_time_4)
+                # print("RX Weights Time: ", scp_time_2 - scp_time_1)
+                # print("\n")
 
                 # if frame_id == 0:
                 #     window = ax1.imshow(im)
                 #     plt.ion()
                 # Using cv2.imshow() method 
                 # Displaying the image 
+                end_time = time.time()
 
+                print("Seconds Per Frame = ", end_time-start_time)
 
                 # window.set_data(im)
                 # plt.pause(0.04)
