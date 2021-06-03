@@ -38,7 +38,7 @@ class MailBox_Process(multiprocessing.Process):
         while True:
             image = self.queue.get()
             t1 = time.time()
-            # self.turn_in_homework(self, image, None)
+            # Student.turn_in_homework(image, None)
 
             t2 = time.time()
             print("\nTransfer Frame")
