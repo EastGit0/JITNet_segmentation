@@ -7,7 +7,7 @@ import datetime
 from torch.utils import tensorboard
 from utils import helpers
 from utils import logger
-import utils.lr_scheduler
+# import utils.lr_scheduler
 from utils.sync_batchnorm import convert_model
 from utils.sync_batchnorm import DataParallelWithCallback
 
@@ -20,7 +20,7 @@ class ClassroomBaseTrainer:
         self.model = model
         self.loss = loss
         self.config = config
-        self.train_loader = train_loader
+        # self.train_loader = train_loader
         self.val_loader = val_loader
         self.train_logger = train_logger
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -59,7 +59,7 @@ class ClassroomBaseTrainer:
         else:
             trainable_params = filter(lambda p:p.requires_grad, self.model.parameters())
         self.optimizer = get_instance(torch.optim, 'optimizer', config, trainable_params)
-        self.lr_scheduler = getattr(utils.lr_scheduler, config['lr_scheduler']['type'])(self.optimizer, self.epochs, len(train_loader))
+        # self.lr_scheduler = getattr(utils.lr_scheduler, config['lr_scheduler']['type'])(self.optimizer, self.epochs, len(train_loader))
         #self.lr_scheduler = getattr(torch.optim.lr_scheduler, config['lr_scheduler']['type'])(self.optimizer, **config['lr_scheduler']['args'])
 
         # MONITORING
@@ -100,12 +100,12 @@ class ClassroomBaseTrainer:
         available_gpus = list(range(n_gpu))
         return device, available_gpus
 
-    def train(self):
-        self.train_loader.dataset._set_files()
+    def train(self, train_loader):
+        # self.train_loader.dataset._set_files()
         self.train_count = self.train_count + 1
         for epoch in range(self.start_epoch, self.epochs+1):
             # RUN TRAIN (AND VAL)
-            results = self._train_epoch(epoch)
+            results = self._train_epoch(epoch, train_loader)
             # self.lr_scheduler.step()
 
         self._save_checkpoint(epoch, save_best=False)

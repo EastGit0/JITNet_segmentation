@@ -17,24 +17,25 @@ class ClassroomTrainer(ClassroomBaseTrainer):
         self.log_step = config['trainer'].get('log_per_iter', int(np.sqrt(self.train_loader.batch_size)))
         if config['trainer']['log_per_iter']: self.log_step = int(self.log_step / self.train_loader.batch_size) + 1
 
-        self.num_classes = self.train_loader.dataset.num_classes
+        # self.num_classes = self.train_loader.dataset.num_classes
 
-        # TRANSORMS FOR VISUALIZATION
-        self.restore_transform = transforms.Compose([
-            local_transforms.DeNormalize(self.train_loader.MEAN, self.train_loader.STD),
-            transforms.ToPILImage()])
-        self.viz_transform = transforms.Compose([
-            transforms.Resize((400, 400)),
-            transforms.ToTensor()])
-
-        if self.device ==  torch.device('cpu'): prefetch = False
-        if prefetch:
-            self.train_loader = DataPrefetcher(train_loader, device=self.device)
-            # self.val_loader = DataPrefetcher(val_loader, device=self.device)
+        # if self.device ==  torch.device('cpu'): prefetch = False
+        # if prefetch:
+        #     self.train_loader = DataPrefetcher(train_loader, device=self.device)
+        #     # self.val_loader = DataPrefetcher(val_loader, device=self.device)
 
         torch.backends.cudnn.benchmark = True
 
-    def _train_epoch(self, epoch):
+    def _train_epoch(self, epoch, train_loader):
+        if epoch == 1:
+            print("Prefetching dataloader")
+            self.num_classes = self.train_loader.dataset.num_classes
+
+            if self.device ==  torch.device('cpu'): prefetch = False
+            if prefetch:
+                self.train_loader = DataPrefetcher(train_loader, device=self.device)
+                # self.val_loader = DataPrefetcher(val_loader, device=self.device)
+
         print("Starting Epoch!")
         self.logger.info('\n')
 
