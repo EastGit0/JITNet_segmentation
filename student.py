@@ -135,21 +135,22 @@ class Student():
                 prediction = F.softmax(torch.from_numpy(prediction), dim=0)
                 end_time_3 = time.time()
                 print("TIME: ", end_time_3 - end_time_2)
-                # print(prediction[0,:,:])
-                # print(prediction[1,:,:])
-                # cv2.imshow("Person", (prediction[1,:,:] * 255).numpy())
-                # cv2.imshow("Item 12", (prediction[12,:,:] * 255).numpy())
-                # cv2.imshow("Background", (prediction[0,:,:]).numpy())
-                # cv2.imshow("Summed", ((torch.sum(prediction[2:,:,:], dim=0)).numpy()))
+                print(prediction[0,:,:])
+                print(prediction[1,:,:])
+                cv2.imshow("Person", (prediction[1,:,:] * 255).numpy())
+                cv2.imshow("Item 12", (prediction[12,:,:] * 255).numpy())
+                cv2.imshow("Background", (prediction[0,:,:]).numpy())
+                cv2.imshow("Summed", ((torch.sum(prediction[2:,:,:], dim=0)).numpy()))
                 prediction = prediction.argmax(0)
-                # print(prediction)
+                print(prediction)
                 prediction = prediction.numpy()
-                # cv2.imshow("argmax", prediction.astype(np.uint8))
-                # print(prediction)
-                # while True:
-                #     cv2.waitKey(10000)
-                # exit()
-                end_time_3 = time.time()
+                cv2.imshow("argmax", prediction.astype(np.uint8))
+                print(prediction)
+                
+                cv2.waitKey(10000)
+                continue
+                exit()
+                # end_time_3 = time.time()
 
                 
 
