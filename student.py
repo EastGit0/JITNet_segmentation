@@ -134,10 +134,10 @@ class Student():
                 prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
                 end_time_3 = time.time()
 
-                # end_time = time.time()
                 print("Prediction Time 1: ", end_time_1 - start_time)
                 print("Prediction Time 2: ", end_time_2 - end_time_1)
                 print("Prediction Time 3: ", end_time_3 - end_time_2)
+                print("\n")
 
                 ##### Send Frame and Mask #####
                 self.turn_in_homework(im, prediction)
