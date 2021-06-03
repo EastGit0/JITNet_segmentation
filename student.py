@@ -127,7 +127,11 @@ class Student():
                 start_time = time.time()
                 # input = normalize(to_tensor(im.convert('RGB'))).unsqueeze(0)
                 input = self.normalize(self.to_tensor(im)).unsqueeze(0)
-                prediction, _ = self.model(input.to(self.device))
+                prediction = self.model(input.to(self.device))
+
+
+                print(prediction)
+                print(prediction[0].shape)
 
 
                 if 0:
@@ -151,7 +155,7 @@ class Student():
                     # print(prediction)
                     end_time_2 = time.time()
 
-                    prediction = F.softmax(prediction, dim=0)
+                    prediction = F.softmax(prediction[0], dim=0)
 
                     end_time_3 = time.time()
                     print("TIME: ", end_time_3 - end_time_2)
