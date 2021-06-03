@@ -24,7 +24,7 @@ class BaseDataSet(Dataset):
             self.blur = blur
         self.val = val
         self.files = []
-        # self._set_files()
+        self._set_files()
         self.to_tensor = transforms.ToTensor()
         self.normalize = transforms.Normalize(mean, std)
         self.return_id = return_id
