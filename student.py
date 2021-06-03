@@ -178,7 +178,7 @@ class Student():
                     # prediction = torch.max(prediction, dim=0)
                     print(prediction)
                     prediction = prediction.numpy() * 255
-                    cv2.imshow("argmax", prediction.astype(np.uint8))
+                    # cv2.imshow("argmax", prediction.astype(np.uint8))
                     print(prediction)
                 
                 
