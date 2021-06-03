@@ -138,6 +138,7 @@ class Student():
                 print(prediction[0,:,:])
                 print(prediction[1,:,:])
                 cv2.imshow("Person", (prediction[1,:,:] * 255).numpy())
+                cv2.imshow("Item 12", (prediction[12,:,:] * 255).numpy())
                 cv2.imshow("Background", (prediction[0,:,:]).numpy())
                 cv2.imshow("Summed", ((torch.sum(prediction[2:,:,:], dim=0)).numpy()))
                 prediction = prediction.argmax(0)
