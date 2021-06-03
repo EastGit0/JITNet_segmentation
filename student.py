@@ -140,7 +140,7 @@ class Student():
                 prediction = prediction.argmax(0)
                 print(prediction)
                 prediction = prediction.numpy()
-                cv2.imshow("B", prediction)
+                cv2.imshow("B", prediction.astype(np.uint8))
                 print(prediction)
                 while True:
                     pass
