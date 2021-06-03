@@ -14,8 +14,8 @@ class ClassroomTrainer(ClassroomBaseTrainer):
         super(ClassroomTrainer, self).__init__(model, loss, resume, config, train_loader, val_loader, train_logger)
 
         self.wrt_mode, self.wrt_step = 'train_', 0
-        self.log_step = config['trainer'].get('log_per_iter', int(np.sqrt(self.train_loader.batch_size)))
-        if config['trainer']['log_per_iter']: self.log_step = int(self.log_step / self.train_loader.batch_size) + 1
+        # self.log_step = config['trainer'].get('log_per_iter', int(np.sqrt(self.train_loader.batch_size)))
+        # if config['trainer']['log_per_iter']: self.log_step = int(self.log_step / self.train_loader.batch_size) + 1
 
         # self.num_classes = self.train_loader.dataset.num_classes
 
