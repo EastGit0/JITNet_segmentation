@@ -64,7 +64,7 @@ class Student():
         # self.ssh_mask.connect('35.233.229.168')
         # self.scp_mask = SCPClient(self.ssh_mask.get_transport())
 
-        self.frame_id = 628
+        self.frame_id = 1500
         self.window_name = "Webcam"
 
         self.next_weight_id = 1
@@ -199,7 +199,7 @@ class Student():
                 
 
                 ##### Send Frame and Mask #####
-                self.turn_in_homework(im, prediction)
+                # self.turn_in_homework(im, prediction)
                 end_time_4 = time.time()
 
                 ##### Display new Frame #####
@@ -228,13 +228,13 @@ class Student():
                   cv2.waitKey(5)
 
 
-                # print("JITNet Time: ", end_time_1 - start_time)
-                # print("Softmax Time: ", end_time_2 - end_time_1)
-                # print("Thresholding Time: ", end_time_3 - end_time_2)
-                # print("TX Frame Time: ", end_time_4 - end_time_3)
-                # print("Display Image Time: ", end_time_5 - end_time_4)
-                # print("RX Weights Time: ", scp_time_2 - scp_time_1)
-                # print("\n")
+                print("JITNet Time: ", end_time_1 - start_time)
+                print("Softmax Time: ", end_time_2 - end_time_1)
+                print("Thresholding Time: ", end_time_3 - end_time_2)
+                print("TX Frame Time: ", end_time_4 - end_time_3)
+                print("Display Image Time: ", end_time_5 - end_time_4)
+                print("RX Weights Time: ", scp_time_2 - scp_time_1)
+                print("\n")
 
                 # if frame_id == 0:
                 #     window = ax1.imshow(im)

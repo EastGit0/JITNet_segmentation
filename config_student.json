@@ -1,10 +1,10 @@
 {
-    "name": "JITNetLight",
+    "name": "JITNet",
     "n_gpu": 1,
     "use_synch_bn": false,
 
     "arch": {
-        "type": "JITNetLight",
+        "type": "JITNet",
         "args": {
             "freeze_bn": false
         }
