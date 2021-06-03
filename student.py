@@ -27,6 +27,21 @@ import multiprocessing
 # thread safe and causes unwanted GPU memory allocations.
 # cv2.ocl.setUseOpenCL(False)
 
+class MailBox_Process(multiprocessing.Process):
+    def __init__(self, id, queue):
+        super(MailBox_Process, self).__init__()
+        self.id = id
+        self.queue = queue
+                
+    def run(self):
+        self.queue.put(True)
+        while True:
+            image = self.queue.get()
+            t1 = time.time()
+            self.turn_in_homework(self, image, None)
+            t2 = time.time()
+            print("\nTransfer Time Frame Color: ", t2-t1)
+
 class Student():
     def __init__(self, model_path, config):
         
@@ -72,20 +87,20 @@ class Student():
         self.next_weight_id = 1
         self.next_weight_path = "saved/teacher_weights/weights_{}".format(str(self.next_weight_id))
 
-    class MailBox_Process(multiprocessing.Process):
-        def __init__(self, id, queue):
-            super(self.MailBox_Process, self).__init__()
-            self.id = id
-            self.queue = queue
+    # class MailBox_Process(multiprocessing.Process):
+    #     def __init__(self, id, queue):
+    #         super(self.MailBox_Process, self).__init__()
+    #         self.id = id
+    #         self.queue = queue
                     
-        def run(self):
-            self.queue.put(True)
-            while True:
-                image = self.queue.get()
-                t1 = time.time()
-                self.turn_in_homework(self, image, None)
-                t2 = time.time()
-                print("\nTransfer Time Frame Color: ", t2-t1)
+    #     def run(self):
+    #         self.queue.put(True)
+    #         while True:
+    #             image = self.queue.get()
+    #             t1 = time.time()
+    #             self.turn_in_homework(self, image, None)
+    #             t2 = time.time()
+    #             print("\nTransfer Time Frame Color: ", t2-t1)
 
     def load_weights(self, path):
         print("---------- LOADING WEIGHTS: {} ---------".format(path))
@@ -149,7 +164,7 @@ class Student():
         # plt.show()
 
         queue = multiprocessing.Queue()
-        mailbox = self.MailBox_Process(0, queue)
+        mailbox = MailBox_Process(0, queue)
         mailbox.start()
 
         queue.get()
