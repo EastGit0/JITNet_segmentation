@@ -174,7 +174,7 @@ class Student():
                     print(prediction)
                     prediction = prediction.numpy()
                     cv2.imshow("argmax", prediction.astype(np.uint8))
-                    print(prediction)
+                    print(np.unique(prediction))
                 
                 
                 cv2.waitKey(10000)
