@@ -142,6 +142,8 @@ class Student():
                 prediction = prediction.numpy()
                 cv2.imshow("B", prediction)
                 print(prediction)
+                while True:
+                    pass
                 exit()
                 # end_time_3 = time.time()
 
