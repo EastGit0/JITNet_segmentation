@@ -64,7 +64,7 @@ class Student():
         # self.ssh_mask.connect('35.233.229.168')
         # self.scp_mask = SCPClient(self.ssh_mask.get_transport())
 
-        self.frame_id = 0
+        self.frame_id = 562
         self.window_name = "Webcam"
 
         self.next_weight_id = 1
