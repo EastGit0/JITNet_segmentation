@@ -127,7 +127,7 @@ class Student():
                 start_time = time.time()
                 # input = normalize(to_tensor(im.convert('RGB'))).unsqueeze(0)
                 input = self.normalize(self.to_tensor(im)).unsqueeze(0)
-                prediction = self.model(input.to(self.device))
+                prediction, _ = self.model(input.to(self.device))
 
 
                 if 0:
