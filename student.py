@@ -200,20 +200,23 @@ class Student():
                     scp_time_2 = time.time()
 
                 if os.path.exists(self.next_weight_path):
+                  weights_time_1 = time.time()
                   self.load_weights(self.next_weight_path)
                   os.system("rm {}".format(self.next_weight_path))
                   self.next_weight_id = self.next_weight_id + 1
                   self.next_weight_path = "saved/teacher_weights/weights_{}".format(str(self.next_weight_id))
+                  weights_time_2 = time.time()
+                  print("Load Weights Time: ", weights_time_2 - weights_time_1)
                 else:
-                  cv2.waitKey(100)
+                  cv2.waitKey(5)
 
 
-                print("Prediction Time 1: ", end_time_1 - start_time)
-                print("Prediction Time 2: ", end_time_2 - end_time_1)
-                print("Prediction Time 3: ", end_time_3 - end_time_2)
-                print("Prediction Time 4: ", end_time_4 - end_time_3)
-                print("Prediction Time 5: ", end_time_5 - end_time_4)
-                print("Prediction Time 6: ", scp_time_2 - scp_time_1)
+                print("JITNet Time: ", end_time_1 - start_time)
+                print("Softmax Time: ", end_time_2 - end_time_1)
+                print("Thresholding Time: ", end_time_3 - end_time_2)
+                print("TX Frame Time: ", end_time_4 - end_time_3)
+                print("Display Image Time: ", end_time_5 - end_time_4)
+                print("RX Weights Time: ", scp_time_2 - scp_time_1)
                 print("\n")
 
                 # if frame_id == 0:
