@@ -130,12 +130,18 @@ class Student():
                 prediction = self.model(input.to(self.device))
                 end_time_1 = time.time()
                 prediction = prediction[0].squeeze(0).cpu().detach().numpy()
-                print(prediction)
+                print(prediction.shape)
                 end_time_2 = time.time()
-                prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
-                print(prediction)
-                exit()
+                prediction = F.softmax(torch.from_numpy(prediction), dim=0)
                 end_time_3 = time.time()
+                print("TIME: ", end_time_3 - end_time_2)
+                print(prediction.shape)
+                prediction = prediction.argmax(0)
+                print(prediction.shape)
+                prediction = prediction.cpu().numpy()
+                print(prediction.shape)
+                exit()
+                # end_time_3 = time.time()
 
                 
 
