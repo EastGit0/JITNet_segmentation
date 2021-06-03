@@ -136,7 +136,7 @@ class Student():
                 end_time_3 = time.time()
                 print("TIME: ", end_time_3 - end_time_2)
                 # print(prediction[1,:,:])
-                cv2.imshow("A", prediction[1,:,:].numpy())
+                cv2.imshow("A", (prediction[1,:,:] * 255).numpy())
                 prediction = prediction.argmax(0)
                 print(prediction)
                 prediction = prediction.numpy()
