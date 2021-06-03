@@ -136,7 +136,7 @@ class Student():
                 # prediction = F.softmax(torch.from_numpy(prediction), dim=0)
 
                 prediction = np.exp(prediction)
-                prediction = prediction / prediction.sum(0, keepdim=True)
+                prediction = prediction / np.sum(prediction, axis=0, keepdim=False)
 
                 end_time_2 = time.time()
 
