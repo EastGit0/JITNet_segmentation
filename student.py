@@ -167,7 +167,7 @@ class Student():
                     cv2.imshow("Background", background)
                     cv2.imshow("Super_Background", super_background)
                     cv2.imshow("Summed", ((torch.sum(prediction[2:,:,:], dim=0)).numpy()))
-                    prediction = prediction.max(0)
+                    prediction, _ = prediction.max(0)
                     # prediction = torch.max(prediction, dim=0)
                     print(prediction)
                     prediction = prediction.numpy()
