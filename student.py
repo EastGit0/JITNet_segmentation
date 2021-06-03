@@ -63,7 +63,7 @@ class Student():
         # self.scp_mask = SCPClient(self.ssh_mask.get_transport())
 
         self.frame_id = 0
-        self.window_name = "Steam"
+        self.window_name = "Webcam"
 
         self.next_weight_id = 1
         self.next_weight_path = "saved/teacher_weights/weights_{}".format(str(self.next_weight_id))
@@ -152,6 +152,8 @@ class Student():
                 high = np.where(prediction >= threshold)
                 prediction[low] = 0
                 prediction[high] = 255
+
+                cv2.imshow("test", prediction)
 
                 end_time_3 = time.time()
 
