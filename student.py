@@ -158,20 +158,20 @@ class Student():
                     # print(prediction[0,:,:])
                     # print(prediction[1,:,:])
 
-                    person = (prediction[1,:,:]*128).numpy()
+                    person = (prediction[1,:,:]).numpy()
                     item_12 = (prediction[12,:,:]).numpy()
                     background = (prediction[0,:,:]).numpy()
                     super_background = background.copy()
-                    summed_b12 = item_12 + background
+                    summed_p12 = item_12 + person
                     # item_12 = item_12 * 255
                     print("Median SUPER BACKGROUND: ", np.median(super_background))
-                    print("Median Summed: ", np.median(summed_b12))
+                    print("Median Summed: ", np.median(summed_p12))
                     super_background[np.where(super_background < .92)] = 0
-                    cv2.imshow("Person", person)
+                    cv2.imshow("Person", person*128)
                     cv2.imshow("Item 12", item_12)
                     cv2.imshow("Background", background)
                     cv2.imshow("Super_Background", super_background)
-                    cv2.imshow("Sum back & 12", summed_b12)
+                    cv2.imshow("Sum back & 12", summed_p12)
                     # cv2.imshow("Sum person & 12", summed_p12)
                     prediction = prediction.argmax(0)
                     # prediction = torch.max(prediction, dim=0)
