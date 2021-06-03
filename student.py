@@ -142,7 +142,7 @@ class Student():
                 item_12 = (prediction[12,:,:] * 255).numpy()
                 background = (prediction[0,:,:]).numpy()
                 super_background = background.copy()
-                super_background[np.where(super_background > 200)] = 255
+                super_background[np.where(super_background < 200)] = 0
                 cv2.imshow("Person", person)
                 cv2.imshow("Item 12", item_12)
                 cv2.imshow("Background", background)
