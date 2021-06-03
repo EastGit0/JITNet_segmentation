@@ -33,6 +33,7 @@ class ClassroomTrainer(ClassroomBaseTrainer):
             self.num_classes = train_loader.dataset.num_classes
 
             if self.device ==  torch.device('cpu'): prefetch = False
+            else: prefetch = True
             if prefetch:
                 self.train_loader = DataPrefetcher(train_loader, device=self.device)
                 # self.val_loader = DataPrefetcher(val_loader, device=self.device)
