@@ -143,7 +143,7 @@ class Student():
                 cv2.imshow("B", prediction.astype(np.uint8))
                 print(prediction)
                 while True:
-                    pass
+                    cv2.waitKey(10000)
                 exit()
                 # end_time_3 = time.time()
 
