@@ -17,6 +17,7 @@ from scp import SCPClient, SCPException
 from stream import VideoInputStream
 import json
 import models
+import time
 
 
 # OpenCL may be enabled by default in OpenCV3; disable it because it's not
@@ -123,12 +124,17 @@ class Student():
                 self.frame_id = self.frame_id + 1
 
                 ##### Make Prediction #####
+                start_time = time.time()
                 # input = normalize(to_tensor(im.convert('RGB'))).unsqueeze(0)
                 input = self.normalize(self.to_tensor(im)).unsqueeze(0)
                 prediction = self.model(input.to(self.device))
                 prediction = prediction[0].squeeze(0).cpu().detach().numpy()
                 prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
-                
+
+                end_time = time.time()
+                print("Prediction Time: ", end_time - start_time)
+                exit()
+                asdf
                 ##### Send Frame and Mask #####
                 self.turn_in_homework(im, prediction)
 
@@ -141,7 +147,7 @@ class Student():
                 try:
                     self.scp.get(local_path=self.next_weight_path, remote_path=("/home/cs348k/data/student/weights/{}/weights_{}.pth".format(self.config['arch']['type'], str(self.next_weight_id))))
                 except SCPException:
-                    print("No Weights!")
+                    # print("No Weights!")
                     pass
 
                 if os.path.exists(self.next_weight_path):
