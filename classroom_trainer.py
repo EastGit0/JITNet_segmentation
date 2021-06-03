@@ -29,7 +29,8 @@ class ClassroomTrainer(ClassroomBaseTrainer):
     def _train_epoch(self, epoch, train_loader):
         if epoch == 1:
             print("Prefetching dataloader")
-            self.num_classes = self.train_loader.dataset.num_classes
+            self.train_loader = train_loader
+            self.num_classes = train_loader.dataset.num_classes
 
             if self.device ==  torch.device('cpu'): prefetch = False
             if prefetch:
