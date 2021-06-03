@@ -128,13 +128,13 @@ class Student():
                 # input = normalize(to_tensor(im.convert('RGB'))).unsqueeze(0)
                 input = self.normalize(self.to_tensor(im)).unsqueeze(0)
                 prediction = self.model(input.to(self.device))
+                end_time = time.time()
                 prediction = prediction[0].squeeze(0).cpu().detach().numpy()
                 prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
 
-                end_time = time.time()
+                # end_time = time.time()
                 print("Prediction Time: ", end_time - start_time)
-                exit()
-                asdf
+
                 ##### Send Frame and Mask #####
                 self.turn_in_homework(im, prediction)
 
