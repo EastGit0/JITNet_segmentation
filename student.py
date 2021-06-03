@@ -153,8 +153,6 @@ class Student():
                 prediction[low] = 0
                 prediction[high] = 255
 
-                cv2.imshow("test", prediction)
-
                 end_time_3 = time.time()
 
                 # super_background = background.copy()
