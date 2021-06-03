@@ -62,7 +62,7 @@
     },
 
     "trainer": {
-        "epochs": 1,
+        "epochs": 4,
         "save_dir": "/home/cs348k/data/student/weights",
         "save_period": 1,
 
