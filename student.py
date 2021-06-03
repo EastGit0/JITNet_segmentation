@@ -129,7 +129,7 @@ class Student():
 
                 input = self.normalize(self.to_tensor(im)).unsqueeze(0)
                 prediction = self.model(input.to(self.device))
-                prediction = prediction[0].squeeze(0).cpu().detach().numpy()
+                prediction = prediction[0].squeeze(0).numpy()
                 
                 end_time_1 = time.time()
                 
