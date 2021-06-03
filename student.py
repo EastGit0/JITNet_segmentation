@@ -130,8 +130,11 @@ class Student():
                 prediction = self.model(input.to(self.device))
                 end_time_1 = time.time()
                 prediction = prediction[0].squeeze(0).cpu().detach().numpy()
+                print(prediction)
                 end_time_2 = time.time()
                 prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
+                print(prediction)
+                exit()
                 end_time_3 = time.time()
 
                 
@@ -148,7 +151,9 @@ class Student():
 
                 ##### Check for New Weights #####
                 try:
+                    scp_time_1 = time.time()
                     self.scp.get(local_path=self.next_weight_path, remote_path=("/home/cs348k/data/student/weights/{}/weights_{}.pth".format(self.config['arch']['type'], str(self.next_weight_id))))
+                    scp_time_2 = time.time()
                 except SCPException:
                     # print("No Weights!")
                     pass
@@ -167,6 +172,7 @@ class Student():
                 print("Prediction Time 3: ", end_time_3 - end_time_2)
                 print("Prediction Time 4: ", end_time_4 - end_time_3)
                 print("Prediction Time 5: ", end_time_5 - end_time_4)
+                print("Prediction Time 6: ", scp_time_2 - scp_time_1)
                 print("\n")
 
                 # if frame_id == 0:

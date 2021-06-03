@@ -15,7 +15,7 @@
         "args":{
             "partition": "ClassroomStuff",
             "data_dir": "/home/cs348k/data/student/",
-            "batch_size": 4,
+            "batch_size": 8,
             "base_size": 768,
             "crop_size": 768,
             "augment": true,
@@ -61,7 +61,7 @@
     },
 
     "trainer": {
-        "epochs": 1,
+        "epochs": 3,
         "save_dir": "/home/cs348k/data/student/weights",
         "save_period": 1,
 
