@@ -20,13 +20,17 @@ class ClassroomStuff(BaseDataSet):
         # print(label_map)
         super(ClassroomStuff, self).__init__(**kwargs)
 
-    def _set_files(self):
+    def _set_files(self, max_frame):
         # if self.split in ['train', 'val']:
         print("Set up files for training")
         file_list = sorted(glob(os.path.join(self.root, 'frames', '*.jpg')))
         self.files = [os.path.basename(f).split('.')[0][6:] for f in file_list]
-        # print("Self.Files:")
-        # print(self.files)
+        print("Self.Files:")
+        print(self.files)
+
+        self.files = sorted(self.files)
+        print(self.files)
+        # max_frame
         # else: raise ValueError(f"Invalid split name {self.split}, either train2017 or val2017")
 
     def _load_data(self, index):
@@ -58,7 +62,7 @@ def get_parent_class(value, dictionary):
 class CLASSROOM(BaseDataLoader):
     def __init__(self, data_dir, batch_size, split, crop_size=None, base_size=None, scale=True, num_workers=1, partition = 'ClassroomStuff',
                     shuffle=False, flip=False, rotate=False, blur= False, augment=False, val_split= None, return_id=False, val=False,
-                    things_only=True):
+                    things_only=True, max_frame=None):
 
         self.MEAN = [0.43931922, 0.41310471, 0.37480941]
         self.STD = [0.24272706, 0.23649098, 0.23429529]
@@ -92,7 +96,8 @@ class CLASSROOM(BaseDataLoader):
             'return_id': return_id,
             'val': val,
             'label_map': label_map,
-            'things_only': things_only
+            'things_only': things_only,
+            'max_frame': max_frame,
         }
 
         if partition == 'ClassroomStuff': self.dataset = ClassroomStuff(**kwargs)

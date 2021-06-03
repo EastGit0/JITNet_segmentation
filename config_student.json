@@ -25,7 +25,8 @@
             "rotate": true,
             "blur": false,
             "split": "train",
-            "num_workers": 8
+            "num_workers": 8,
+            "max_frame": 0
         }
     },
 
