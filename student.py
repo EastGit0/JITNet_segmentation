@@ -126,82 +126,64 @@ class Student():
 
                 ##### Make Prediction #####
                 start_time = time.time()
-                # input = normalize(to_tensor(im.convert('RGB'))).unsqueeze(0)
+
                 input = self.normalize(self.to_tensor(im)).unsqueeze(0)
                 prediction = self.model(input.to(self.device))
-
-
-                if 0:
-                    with torch.no_grad():
-                        probs = F.softmax(torch.from_numpy(prediction), dim=1)
-                        print(probs.shape)
-                        probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
-                        print(probs_max.shape)
-                        print(preds.shape)
-
-
-
-
-
-
-
-
-                else:
-                    end_time_1 = time.time()
-                    prediction = prediction[0].squeeze(0).cpu().detach().numpy()
-                    # print(prediction)
-                    end_time_2 = time.time()
-
-                    prediction = F.softmax(torch.from_numpy(prediction), dim=0)
-
-                    end_time_3 = time.time()
-                    print("TIME: ", end_time_3 - end_time_2)
-                    # print(prediction[0,:,:])
-                    # print(prediction[1,:,:])
-
-                    person = (prediction[1,:,:]*8).numpy()
-                    item_12 = (prediction[12,:,:]).numpy()
-                    background = (prediction[0,:,:]).numpy()
-                    background = median_filter(background, (15, 15), mode='constant', cval=0)
-                    super_background = background.copy()
-                    summed_p12 = item_12 + person
-                    summed_p12 = median_filter(summed_p12, (15, 15), mode='constant', cval=255)
-                    super_summed_p12 = summed_p12.copy()
-                    super_summed_p12[np.where(super_summed_p12 > 0.05)] = 1
-                    # item_12 = median_filter(item_12, (11, 11), mode='constant', cval=255)
-                    # item_12 = item_12 * 255
-                    # print("Median SUPER BACKGROUND: ", np.median(super_background))
-                    # print("Median Summed: ", np.median(summed_p12))
-                    super_background[np.where(super_background < .92)] = 0
-                    cv2.imshow("Person", person)
-                    cv2.imshow("Item 12", item_12)
-                    cv2.imshow("Background", background)
-                    cv2.imshow("Super_Background", super_background)
-                    cv2.imshow("Sum back & 12", summed_p12)
-                    cv2.imshow("Super Sum", super_summed_p12)
-                    # cv2.imshow("Sum person & 12", summed_p12)
-                    prediction = prediction.argmax(0)
-                    # prediction = torch.max(prediction, dim=0)
-                    print(prediction)
-                    prediction = prediction.numpy()
-                    cv2.imshow("argmax", prediction.astype(np.uint8))
-                    print(np.unique(prediction))
+                prediction = prediction[0].squeeze(0).cpu().detach().numpy()
                 
+                end_time_1 = time.time()
                 
-                cv2.waitKey(5000)
-                continue
-                exit()
+                prediction = F.softmax(torch.from_numpy(prediction), dim=0)
+
+                end_time_2 = time.time()
+
+                
+
+                # person = (prediction[1,:,:]*8).numpy()
+                # item_12 = (prediction[12,:,:]).numpy()
+                prediction = (prediction[0,:,:]).numpy()
+                prediction = median_filter(prediction, (15, 15), mode='constant', cval=0)
+                threshold = 0.92
+                low = np.where(prediction < threshold)
+                high = np.where(prediction >= threshold)
+                prediction[low] = 0
+                prediction[high] = 1
+
+                end_time_3 = time.time()
+
+                # super_background = background.copy()
+                # summed_p12 = item_12 + person
+                # summed_p12 = median_filter(summed_p12, (15, 15), mode='constant', cval=255)
+                # super_summed_p12 = summed_p12.copy()
+                # super_summed_p12[np.where(super_summed_p12 > 0.05)] = 1
+                # item_12 = median_filter(item_12, (11, 11), mode='constant', cval=255)
+                # item_12 = item_12 * 255
+                # print("Median SUPER BACKGROUND: ", np.median(super_background))
+                # print("Median Summed: ", np.median(summed_p12))
+                
+                # cv2.imshow("Person", person)
+                # cv2.imshow("Item 12", item_12)
+                # cv2.imshow("Background", background)
+                # cv2.imshow("Super_Background", super_background)
+                # cv2.imshow("Sum back & 12", summed_p12)
+                # cv2.imshow("Super Sum", super_summed_p12)
+
+                # cv2.imshow("Sum person & 12", summed_p12)
+                # prediction = prediction.argmax(0)
+                # prediction = prediction.numpy()
+                # cv2.imshow("argmax", prediction.astype(np.uint8))
+                
                 # end_time_3 = time.time()
 
                 
 
                 ##### Send Frame and Mask #####
-                self.turn_in_homework(im, prediction)
+                # self.turn_in_homework(im, prediction)
                 end_time_4 = time.time()
 
                 ##### Display new Frame #####
                 im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-                im[np.where(prediction >= 1)] = 0
+                im[low] = 0
                 cv2.imshow(self.window_name, im) #prediction.astype(np.uint8)
                 end_time_5 = time.time()
 
@@ -211,8 +193,7 @@ class Student():
                     self.scp.get(local_path=self.next_weight_path, remote_path=("/home/cs348k/data/student/weights/{}/weights_{}.pth".format(self.config['arch']['type'], str(self.next_weight_id))))
                     scp_time_2 = time.time()
                 except SCPException:
-                    # print("No Weights!")
-                    pass
+                    scp_time_2 = time.time()
 
                 if os.path.exists(self.next_weight_path):
                   self.load_weights(self.next_weight_path)
