@@ -1,10 +1,10 @@
 {
-    "name": "JITNet",
+    "name": "JITNetLight",
     "n_gpu": 1,
     "use_synch_bn": false,
 
     "arch": {
-        "type": "JITNet",
+        "type": "JITNetLight",
         "args": {
             "freeze_bn": false
         }
@@ -47,7 +47,7 @@
         "differential_lr": false,
         "args":{
             "lr": 0.1,
-            "weight_decay": 1e-2,
+            "weight_decay": 1e-4,
             "eps": 1.0
         }
     },
@@ -61,7 +61,7 @@
     },
 
     "trainer": {
-        "epochs": 20,
+        "epochs": 10,
         "save_dir": "saved/",
         "save_period": 1,
 

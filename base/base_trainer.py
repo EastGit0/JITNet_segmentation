@@ -107,7 +107,7 @@ class BaseTrainer:
         for epoch in range(self.start_epoch, self.epochs+1):
             # RUN TRAIN (AND VAL)
             results = self._train_epoch(epoch)
-            self.lr_scheduler.step()
+            #self.lr_scheduler.step()
             if self.do_validation and epoch % self.config['trainer']['val_per_epochs'] == 0:
                 results = self._valid_epoch(epoch)
 
