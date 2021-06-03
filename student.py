@@ -132,7 +132,7 @@ class Student():
 
                 if 1:
                     with torch.no_grad():
-                        probs = F.softmax(prediction, dim=1)
+                        probs = F.softmax(torch.from_numpy(prediction), dim=1)
                         print(probs.shape)
                         probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
                         print(probs_max.shape)
