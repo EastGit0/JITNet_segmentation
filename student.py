@@ -162,13 +162,14 @@ class Student():
                     item_12 = (prediction[12,:,:] * 255).numpy()
                     background = (prediction[0,:,:]).numpy()
                     super_background = background.copy()
+                    summed = item_12 + background
                     print("Max SUPER BACKGROUND: ", np.amax(super_background))
                     super_background[np.where(super_background < .92)] = 0
                     cv2.imshow("Person", person)
                     cv2.imshow("Item 12", item_12)
                     cv2.imshow("Background", background)
                     cv2.imshow("Super_Background", super_background)
-                    cv2.imshow("Summed", ((torch.sum(prediction[0:,:,:], prediction[12:,:,:])).numpy()))
+                    cv2.imshow("Summed", summed)
                     prediction = prediction.argmax(0)
                     # prediction = torch.max(prediction, dim=0)
                     print(prediction)
