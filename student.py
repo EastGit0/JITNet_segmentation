@@ -134,13 +134,13 @@ class Student():
                 print(prediction[0].shape)
 
 
-                if 0:
-                    with torch.no_grad():
-                        probs = F.softmax(torch.from_numpy(prediction), dim=1)
-                        print(probs.shape)
-                        probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
-                        print(probs_max.shape)
-                        print(preds.shape)
+                # if 0:
+                #     with torch.no_grad():
+                #         probs = F.softmax(torch.from_numpy(prediction), dim=1)
+                #         print(probs.shape)
+                #         probs_max, preds = torch.max(probs, dim=1) # [B, H, W]
+                #         print(probs_max.shape)
+                #         print(preds.shape)
 
 
 
@@ -149,7 +149,8 @@ class Student():
 
 
 
-                else:
+                # else:
+                with torch.no_grad():
                     end_time_1 = time.time()
                     # prediction = prediction[0].squeeze(0).cpu().detach().numpy()
                     # print(prediction)
