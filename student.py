@@ -162,6 +162,7 @@ class Student():
                     person = (prediction[1,:,:]*8).numpy()
                     item_12 = (prediction[12,:,:]).numpy()
                     background = (prediction[0,:,:]).numpy()
+                    background = median_filter(background, (15, 15), mode='constant', cval=0)
                     super_background = background.copy()
                     summed_p12 = item_12 + person
                     summed_p12 = median_filter(summed_p12, (15, 15), mode='constant', cval=255)
