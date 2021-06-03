@@ -165,16 +165,19 @@ class Student():
                     super_background = background.copy()
                     summed_p12 = item_12 + person
                     summed_p12 = median_filter(summed_p12, (15, 15), mode='constant', cval=255)
+                    super_summed_p12 = summed_p12.copy()
+                    super_summed_p12[np.where(super_summed_p12 > 0.05)] = 1
                     # item_12 = median_filter(item_12, (11, 11), mode='constant', cval=255)
                     # item_12 = item_12 * 255
-                    print("Median SUPER BACKGROUND: ", np.median(super_background))
-                    print("Median Summed: ", np.median(summed_p12))
+                    # print("Median SUPER BACKGROUND: ", np.median(super_background))
+                    # print("Median Summed: ", np.median(summed_p12))
                     super_background[np.where(super_background < .92)] = 0
                     cv2.imshow("Person", person)
                     cv2.imshow("Item 12", item_12)
                     cv2.imshow("Background", background)
                     cv2.imshow("Super_Background", super_background)
                     cv2.imshow("Sum back & 12", summed_p12)
+                    cv2.imshow("Super Sum", super_summed_p12)
                     # cv2.imshow("Sum person & 12", summed_p12)
                     prediction = prediction.argmax(0)
                     # prediction = torch.max(prediction, dim=0)
