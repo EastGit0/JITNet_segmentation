@@ -134,18 +134,17 @@ class Student():
                 prediction = F.softmax(torch.from_numpy(prediction), dim=0).argmax(0).cpu().numpy()
                 end_time_3 = time.time()
 
-                print("Prediction Time 1: ", end_time_1 - start_time)
-                print("Prediction Time 2: ", end_time_2 - end_time_1)
-                print("Prediction Time 3: ", end_time_3 - end_time_2)
-                print("\n")
+                
 
                 ##### Send Frame and Mask #####
                 self.turn_in_homework(im, prediction)
+                end_time_4 = time.time()
 
                 ##### Display new Frame #####
                 im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
                 im[np.where(prediction >= 1)] = 0
                 cv2.imshow(self.window_name, im) #prediction.astype(np.uint8)
+                end_time_5 = time.time()
 
                 ##### Check for New Weights #####
                 try:
@@ -162,6 +161,13 @@ class Student():
                 else:
                   cv2.waitKey(100)
 
+
+                print("Prediction Time 1: ", end_time_1 - start_time)
+                print("Prediction Time 2: ", end_time_2 - end_time_1)
+                print("Prediction Time 3: ", end_time_3 - end_time_2)
+                print("Prediction Time 4: ", end_time_4 - end_time_3)
+                print("Prediction Time 5: ", end_time_5 - end_time_4)
+                print("\n")
 
                 # if frame_id == 0:
                 #     window = ax1.imshow(im)
