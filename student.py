@@ -85,23 +85,23 @@ class Student():
     def turn_in_homework(self, image, mask):
         frame_name = "saved/stream_outputs/{}.jpg".format("frame_" + str(self.frame_id))
         mask_name = "saved/stream_outputs/{}.png".format("prediction_" + str(self.frame_id))
-        tensor_name = "saved/stream_outputs/{}.pt".format("prediction_" + str(self.frame_id))
+        # tensor_name = "saved/stream_outputs/{}.pt".format("prediction_" + str(self.frame_id))
 
         # Save Frame and Mask
         cv2.imwrite(frame_name, image) # frame
         cv2.imwrite(mask_name, mask) #mask
-        tensor_mask = self.to_tensor(mask)
-        torch.save(tensor_mask, tensor_name)
+        # tensor_mask = self.to_tensor(mask)
+        # torch.save(tensor_mask, tensor_name)
         
         # Send Frame and Mask
         self.scp.put(frame_name, remote_path='/home/cs348k/data/student/frames')
         self.scp.put(mask_name, remote_path='/home/cs348k/data/student/predictions')
-        self.scp.put(tensor_name, remote_path='/home/cs348k/data/student/predictions')
+        # self.scp.put(tensor_name, remote_path='/home/cs348k/data/student/predictions')
         
         # delete frame and mask (no need to accumulate masks and frames)
         os.system("rm {}".format(frame_name))
         os.system("rm {}".format(mask_name))
-        os.system("rm {}".format(tensor_name))
+        # os.system("rm {}".format(tensor_name))
 
     def video_stream(self):
         """main function"""
