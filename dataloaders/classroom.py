@@ -27,8 +27,8 @@ class ClassroomStuff(BaseDataSet):
         self.files = [os.path.basename(f).split('.')[0][6:] for f in file_list]
         print("Self.Files:")
         print(self.files)
-
-        self.files = sorted(self.files)
+        print("MAX FRAME: ", max_frame)
+        self.files = [self.files[i] for i in range(len(self.files)) if int(self.files[i]) <= int(max_frame)]
         print(self.files)
         # max_frame
         # else: raise ValueError(f"Invalid split name {self.split}, either train2017 or val2017")
