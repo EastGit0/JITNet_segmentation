@@ -147,16 +147,11 @@ class Student():
 
                 else:
                     end_time_1 = time.time()
-                    prediction = prediction[0].squeeze(0).cpu().detach().numpy()
+                    # prediction = prediction[0].squeeze(0).cpu().detach().numpy()
                     # print(prediction)
                     end_time_2 = time.time()
-                    # prediction = F.softmax(torch.from_numpy(prediction), dim=0)
-                    prediction.sum(axis=0, keepdims=True)
-                    print(prediction)
-                    print(prediction.shape)
-                    exit()
 
-                    prediction = prediction / prediction.sum(axis=0, keepdims=True)
+                    prediction = F.softmax(prediction, dim=0)
 
                     end_time_3 = time.time()
                     print("TIME: ", end_time_3 - end_time_2)
