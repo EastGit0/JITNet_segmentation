@@ -25,11 +25,7 @@ class ClassroomStuff(BaseDataSet):
         print("Set up files for training")
         file_list = sorted(glob(os.path.join(self.root, 'frames', '*.jpg')))
         self.files = [os.path.basename(f).split('.')[0][6:] for f in file_list]
-        print("Self.Files:")
-        print(self.files)
-        print("MAX FRAME: ", max_frame)
         self.files = [self.files[i] for i in range(len(self.files)) if int(self.files[i]) <= int(max_frame)]
-        print(self.files)
         # max_frame
         # else: raise ValueError(f"Invalid split name {self.split}, either train2017 or val2017")
 
@@ -66,8 +62,6 @@ class CLASSROOM(BaseDataLoader):
 
         self.MEAN = [0.43931922, 0.41310471, 0.37480941]
         self.STD = [0.24272706, 0.23649098, 0.23429529]
-
-        print("MAX FRAME CLASS: ", max_frame)
 
         id2trainid_objects = {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 13: 11,
                       14: 12, 15: 13, 16: 14, 17: 15, 18: 16, 19: 17, 20: 18, 21: 19, 22: 20,
