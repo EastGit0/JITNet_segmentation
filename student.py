@@ -184,7 +184,7 @@ class Student():
                     print(np.unique(prediction))
                 
                 
-                cv2.waitKey(10000)
+                cv2.waitKey(5000)
                 continue
                 exit()
                 # end_time_3 = time.time()
