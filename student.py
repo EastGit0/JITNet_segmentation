@@ -159,12 +159,12 @@ class Student():
 
                     end_time_3 = time.time()
                     print("TIME: ", end_time_3 - end_time_2)
-                    print(prediction[0,:,:])
-                    print(prediction[1,:,:])
+                    print(prediction[0,0,:,:])
+                    print(prediction[0,1,:,:])
 
-                    person = (prediction[1,:,:] * 128).numpy()
-                    item_12 = (prediction[12,:,:] * 255).numpy()
-                    background = (prediction[0,:,:]).numpy()
+                    person = (prediction[0,1,:,:] * 128).numpy()
+                    item_12 = (prediction[0,12,:,:] * 255).numpy()
+                    background = (prediction[0,0,:,:]).numpy()
                     super_background = background.copy()
                     print("Max SUPER BACKGROUND: ", np.amax(super_background))
                     super_background[np.where(super_background < .92)] = 0
@@ -172,8 +172,8 @@ class Student():
                     cv2.imshow("Item 12", item_12)
                     cv2.imshow("Background", background)
                     cv2.imshow("Super_Background", super_background)
-                    cv2.imshow("Summed", ((torch.sum(prediction[2:,:,:], dim=0)).numpy()))
-                    prediction, _ = prediction.max(0)
+                    cv2.imshow("Summed", ((torch.sum(prediction[0,2:,:,:], dim=1)).numpy()))
+                    prediction, _ = prediction.max(1)
                     # prediction = torch.max(prediction, dim=0)
                     print(prediction)
                     prediction = prediction.numpy() * 255
