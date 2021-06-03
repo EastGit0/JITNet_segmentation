@@ -158,13 +158,14 @@ class Student():
                     # print(prediction[0,:,:])
                     # print(prediction[1,:,:])
 
-                    person = (prediction[1,:,:]).numpy()
+                    person = (prediction[1,:,:]*128).numpy()
                     item_12 = (prediction[12,:,:]).numpy()
                     background = (prediction[0,:,:]).numpy()
                     super_background = background.copy()
                     summed_b12 = item_12 + background
                     # item_12 = item_12 * 255
-                    print("Max SUPER BACKGROUND: ", np.amax(super_background))
+                    print("Median SUPER BACKGROUND: ", np.median(super_background))
+                    print("Median Summed: ", np.median(summed_b12))
                     super_background[np.where(super_background < .92)] = 0
                     cv2.imshow("Person", person)
                     cv2.imshow("Item 12", item_12)
