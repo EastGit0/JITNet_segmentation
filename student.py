@@ -153,6 +153,7 @@ class Student():
                 prediction = prediction.numpy()
                 cv2.imshow("argmax", prediction.astype(np.uint8))
                 print(prediction)
+                print("Max SUPER BACKGROUND: ", max(super_background))
                 
                 cv2.waitKey(10000)
                 continue
