@@ -228,13 +228,13 @@ class Student():
                   cv2.waitKey(5)
 
 
-                print("JITNet Time: ", end_time_1 - start_time)
-                print("Softmax Time: ", end_time_2 - end_time_1)
-                print("Thresholding Time: ", end_time_3 - end_time_2)
-                print("TX Frame Time: ", end_time_4 - end_time_3)
-                print("Display Image Time: ", end_time_5 - end_time_4)
-                print("RX Weights Time: ", scp_time_2 - scp_time_1)
-                print("\n")
+                # print("JITNet Time: ", end_time_1 - start_time)
+                # print("Softmax Time: ", end_time_2 - end_time_1)
+                # print("Thresholding Time: ", end_time_3 - end_time_2)
+                # print("TX Frame Time: ", end_time_4 - end_time_3)
+                # print("Display Image Time: ", end_time_5 - end_time_4)
+                # print("RX Weights Time: ", scp_time_2 - scp_time_1)
+                # print("\n")
 
                 # if frame_id == 0:
                 #     window = ax1.imshow(im)
