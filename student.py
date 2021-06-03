@@ -38,7 +38,7 @@ class MailBox_Process(multiprocessing.Process):
         while True:
             image = self.queue.get()
             t1 = time.time()
-            # Student.turn_in_homework(image, None)
+            Student.turn_in_homework(image, None)
 
             t2 = time.time()
             print("\nProcess 1: Transfer Frame")
@@ -71,37 +71,23 @@ class Student():
 
         self.load_weights(model_path)
 
-        # # Set up SSH
-        # self.ssh = SSHClient()
-        # self.ssh.load_system_host_keys()
-        # self.ssh.connect('35.233.229.168')
-        # self.scp = SCPClient(self.ssh.get_transport())
+        # Set up SSH
+        self.ssh = SSHClient()
+        self.ssh.load_system_host_keys()
+        self.ssh.connect('35.233.229.168')
+        self.scp = SCPClient(self.ssh.get_transport())
 
         # self.ssh_mask = SSHClient()
         # self.ssh_mask.load_system_host_keys()
         # self.ssh_mask.connect('35.233.229.168')
         # self.scp_mask = SCPClient(self.ssh_mask.get_transport())
 
-        self.frame_id = 1500
+        self.frame_id = 1
         self.window_name = "Webcam"
 
         self.next_weight_id = 1
         self.next_weight_path = "saved/teacher_weights/weights_{}".format(str(self.next_weight_id))
 
-    # class MailBox_Process(multiprocessing.Process):
-    #     def __init__(self, id, queue):
-    #         super(self.MailBox_Process, self).__init__()
-    #         self.id = id
-    #         self.queue = queue
-                    
-    #     def run(self):
-    #         self.queue.put(True)
-    #         while True:
-    #             image = self.queue.get()
-    #             t1 = time.time()
-    #             self.turn_in_homework(self, image, None)
-    #             t2 = time.time()
-    #             print("\nTransfer Time Frame Color: ", t2-t1)
 
     def load_weights(self, path):
         print("---------- LOADING WEIGHTS: {} ---------".format(path))
