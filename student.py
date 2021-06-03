@@ -163,7 +163,7 @@ class Student():
                     background = (prediction[0,:,:]).numpy()
                     super_background = background.copy()
                     summed_b12 = item_12 + background
-                    item_12 = item_12 * 255
+                    # item_12 = item_12 * 255
                     print("Max SUPER BACKGROUND: ", np.amax(super_background))
                     super_background[np.where(super_background < .92)] = 0
                     cv2.imshow("Person", person)
