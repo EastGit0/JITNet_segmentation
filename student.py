@@ -182,7 +182,7 @@ class Student():
                 
 
                 ##### Send Frame and Mask #####
-                # self.turn_in_homework(im, prediction)
+                self.turn_in_homework(im, prediction)
                 end_time_4 = time.time()
 
                 ##### Display new Frame #####
